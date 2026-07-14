@@ -7,6 +7,7 @@ import { createSettingsStore, type SettingsStore } from '../state/settingsStore'
 
 /** The DOM elements the application requires; located once in main.ts. */
 export interface ApplicationDom {
+  readonly appRoot: HTMLElement;
   readonly canvas: HTMLCanvasElement;
   readonly loadingRoot: HTMLElement;
   readonly loadingStage: HTMLElement;

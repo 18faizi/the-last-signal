@@ -12,6 +12,9 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 60_000,
   fullyParallel: false,
+  // Movement tests assert physics timing; parallel browsers on software
+  // rendering (SwiftShader) contend for CPU and skew frame pacing.
+  workers: 1,
   retries: process.env['CI'] ? 1 : 0,
   reporter: process.env['CI'] ? 'list' : [['list'], ['html', { open: 'never' }]],
   use: {

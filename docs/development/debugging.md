@@ -40,3 +40,21 @@ message; development builds also show the `GameError` kind, message, cause
 chain and stack, plus a copy-details button (when the Clipboard API is
 available). To exercise it manually, temporarily throw inside
 `DevelopmentScene.create` and reload.
+
+## Milestone 0.2 additions
+
+When the movement scene is active, the overlay appends player rows: position,
+horizontal speed, vertical velocity, mode (idle/walking/sprinting/crouching/
+airborne), grounded, ground distance, slope angle, crouch state (held /
+crouched / BLOCKED), pointer lock and yaw/pitch. Rows are scene-contributed
+via `SceneHandle.getDebugFields()` and update on the overlay timer.
+
+`F4` (development only) toggles wireframe visualization of the player
+capsule (swaps size with stance), the ground probe (yellow), the
+head-clearance probe (teal; red while standing is blocked), the movement
+direction (green) and the ground normal (magenta). Debug meshes never
+collide, are unpickable, and are disposed with the scene.
+
+Settings integration can be verified from the console in development via the
+test bridge: `__TLS_TEST__.setMouseSensitivity(3)` and
+`__TLS_TEST__.setInvertY(true)` write through the real settings store.

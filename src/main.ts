@@ -17,6 +17,7 @@ function requireElement<T extends HTMLElement>(id: string): T {
 
 function locateDom(): ApplicationDom {
   return {
+    appRoot: requireElement('app-root'),
     canvas: requireElement<HTMLCanvasElement>('game-canvas'),
     loadingRoot: requireElement('loading-root'),
     loadingStage: requireElement('loading-stage'),

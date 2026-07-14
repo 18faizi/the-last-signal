@@ -196,6 +196,42 @@ body {
   white-space: nowrap;
 }
 
+/* ---------- Pointer-lock prompt ---------- */
+
+#pointer-lock-prompt {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.6rem;
+  background: rgb(10 12 18 / 82%);
+  border: 1px solid #333a4e;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  user-select: none;
+  text-align: center;
+}
+
+#pointer-lock-prompt:focus-visible {
+  outline: 2px solid #8a90a0;
+  outline-offset: 2px;
+}
+
+#pointer-lock-prompt[hidden] {
+  display: none;
+}
+
+.pointer-lock-hint {
+  color: #8a90a0;
+  font-size: 0.75rem;
+}
+
 /* ---------- Ready marker ---------- */
 
 #ready-marker {

@@ -8,7 +8,8 @@ union plus an async `create(context)` factory returning a `SceneHandle`
 at startup — there is no switch statement; adding a scene means adding a
 definition module and registering it.
 
-Milestone 0.1 registers exactly one definition: `development`.
+Registered scenes: `movement-test` (boot scene since Milestone 0.2) and
+`development` (Milestone 0.1 smoke scene, kept registered).
 
 ## Transition sequence
 
@@ -35,7 +36,16 @@ Failures are wrapped in `GameError('scene-create')`, reported through
 - `physics` — the shared `PhysicsService`; the scene calls
   `enableForScene(scene)` and owns the returned plugin
 - `environment` — build-mode info
+- `input` — the application's `InputManager` (scenes never attach raw
+  keyboard handlers themselves)
+- `settings` — the settings store (mouse sensitivity, invert-Y)
+- `overlayParent` — parent element for scene-owned DOM overlays such as the
+  pointer-lock prompt
 - `onPhysicsReady` — callback so capability/debug state reflects reality
+
+A handle may also expose `getDebugFields()` — label/value rows the
+development debug overlay appends below its fixed rows (polled on the
+overlay's refresh timer, never per frame).
 
 ## Disposal contract
 

@@ -5,6 +5,6 @@
  * credits). Using a string union rather than an enum keeps the values
  * readable in the store, the debug overlay and test output.
  */
-export type SceneId = 'development';
+export type SceneId = 'development' | 'movement-test';
 
-export const SCENE_IDS: readonly SceneId[] = ['development'];
+export const SCENE_IDS: readonly SceneId[] = ['development', 'movement-test'];

@@ -14,8 +14,10 @@ pnpm dev
 ```
 
 Vite prints a local URL. Opening it should show the loading screen, then the
-development scene with a falling sphere and the
-`Milestone 0.1 — Foundation Ready` marker.
+grey-box movement test course with the "Click to enter movement test" prompt
+and the `Milestone 0.1 — Foundation Ready` marker. Click the canvas to
+capture the mouse and move with `WASD` (see README for all controls). The
+full manual verification script lives in `manual-test-checklist.md`.
 
 ## Useful commands
 

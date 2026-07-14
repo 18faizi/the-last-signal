@@ -43,3 +43,34 @@ for the fallback itself.
 
 `pnpm typecheck` runs `tsc --noEmit` over the entire project including test
 and config files.
+
+## Milestone 0.2 additions
+
+New pure-logic unit suites: movement intent (axis normalization, opposing
+cancellation, diagonal normalization, jump press-vs-held), movement-mode
+selection, crouch state machine (including stand-blocked), camera look
+(pitch clamp, invert-Y, sensitivity scaling, yaw wrapping), jump timing
+(coyote window, jump buffering, double-jump prevention) and player-config
+validation.
+
+New Playwright suite `tests/e2e/movement.spec.ts`: boots the movement scene,
+verifies the pointer-lock prompt, clicks the canvas, then drives walking,
+stopping, jumping, crouching and sprinting via keyboard, asserting against
+the test bridge. Fails on any console/page error.
+
+### Development test bridge
+
+Development builds (only) install `window.__TLS_TEST__` from
+`src/game/dev/TestBridge.ts` when the movement scene loads:
+
+- `getPlayerState()` — plain-data player snapshot (position, speeds, mode,
+  stance, pointer lock, yaw/pitch); no Babylon objects cross the boundary.
+- `setPointerLockBypass(boolean)` — lets automation drive movement where
+  headless Chromium denies real pointer lock.
+- `respawn()` — reset to spawn.
+- `setMouseSensitivity(number)` / `setInvertY(boolean)` — settings-store
+  verification hooks (routed through the real store, not a side channel).
+
+The bridge is removed on scene disposal and is never installed in
+production builds (`environment.isDevelopment` gate; verify with
+`pnpm preview` — `window.__TLS_TEST__` is undefined there).

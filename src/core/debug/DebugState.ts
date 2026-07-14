@@ -17,6 +17,8 @@ export interface DebugState {
   readonly pointerLocked: boolean;
   readonly pressedKeys: readonly string[];
   readonly buildMode: string;
+  /** Scene-contributed rows (label/value), e.g. player controller state. */
+  readonly extra: ReadonlyArray<readonly [string, string]>;
 }
 
 export type DebugStateProvider = () => DebugState;

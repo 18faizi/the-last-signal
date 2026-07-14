@@ -1,17 +1,22 @@
 /**
  * Abstract input actions and their default key bindings.
  *
- * Milestone 0.1 only *tracks* raw input; nothing consumes movement actions
- * yet. The mapping layer exists now so later milestones bind gameplay to
- * actions instead of hardcoding physical keys into scene logic.
+ * The mapping layer exists so gameplay binds to actions instead of hardcoding
+ * physical keys into scene logic. Milestone 0.2 adds the first-person
+ * movement actions consumed by the player controller's intent layer.
  */
 export enum InputAction {
   MoveForward = 'move-forward',
   MoveBackward = 'move-backward',
   MoveLeft = 'move-left',
   MoveRight = 'move-right',
+  Sprint = 'sprint',
+  Crouch = 'crouch',
+  Jump = 'jump',
   Interact = 'interact',
+  ResetPlayer = 'reset-player',
   ToggleDebugOverlay = 'toggle-debug-overlay',
+  ToggleDebugVisualization = 'toggle-debug-visualization',
 }
 
 /** Maps KeyboardEvent.code values to actions. */
@@ -22,11 +27,37 @@ export const DEFAULT_BINDINGS: InputBindings = {
   KeyS: InputAction.MoveBackward,
   KeyA: InputAction.MoveLeft,
   KeyD: InputAction.MoveRight,
+  ShiftLeft: InputAction.Sprint,
+  ShiftRight: InputAction.Sprint,
+  ControlLeft: InputAction.Crouch,
+  KeyC: InputAction.Crouch,
+  Space: InputAction.Jump,
   KeyE: InputAction.Interact,
+  KeyR: InputAction.ResetPlayer,
   Backquote: InputAction.ToggleDebugOverlay,
   F3: InputAction.ToggleDebugOverlay,
+  F4: InputAction.ToggleDebugVisualization,
 };
 
 export function actionForCode(bindings: InputBindings, code: string): InputAction | undefined {
   return bindings[code];
+}
+
+/** All key codes bound to the given action. */
+export function codesForAction(bindings: InputBindings, action: InputAction): readonly string[] {
+  return Object.keys(bindings).filter((code) => bindings[code] === action);
+}
+
+/** Whether any key bound to the action is in the pressed set. */
+export function isActionPressed(
+  bindings: InputBindings,
+  pressed: ReadonlySet<string>,
+  action: InputAction,
+): boolean {
+  for (const code of Object.keys(bindings)) {
+    if (bindings[code] === action && pressed.has(code)) {
+      return true;
+    }
+  }
+  return false;
 }

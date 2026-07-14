@@ -4,13 +4,21 @@ A browser-based atmospheric first-person mystery game set inside an abandoned
 telecommunications relay station in northern Pakistan. Built with Babylon.js
 and TypeScript.
 
-## Current milestone: 0.1 — Project Foundation
+## Current milestone: 0.2 — First-Person Controller and Camera Foundation
 
-**This milestone contains no gameplay.** It establishes the technical
-foundation: application lifecycle, engine creation with WebGPU→WebGL
+Milestone 0.1 established the technical foundation (lifecycle, WebGPU→WebGL
 fallback, scene management, Havok physics, input/audio/asset infrastructure,
-state stores, debug tooling, testing and CI. The only scene is a development
-test scene (lit ground plane, primitives, one physics-driven falling sphere).
+stores, debug tooling, testing, CI). Milestone 0.2 adds a production-quality
+first-person controller — pointer-lock mouse look, walking/sprinting/
+crouching, jumping, slopes, step traversal, head-clearance checks — inside a
+grey-box traversal test course. **There is still no gameplay**: no
+interactions, story, enemies, audio content or saves.
+
+### Controls (movement test scene)
+
+Click the canvas to capture the mouse (Esc releases). `WASD` move ·
+`Shift` sprint · `C`/`Ctrl` crouch · `Space` jump · `R` respawn (dev) ·
+`` ` ``/`F3` debug overlay (dev) · `F4` collider/probe visualization (dev).
 
 ## Requirements
 
@@ -66,21 +74,27 @@ included `vercel.json`. See `docs/production/deployment.md`.
   asset manifest/manager, debug overlay, typed error system.
 - `src/state/` — Zustand vanilla stores for coarse application/settings
   state. No Babylon objects, no per-frame data.
-- `src/scenes/` — scene definitions; only `development` exists.
+- `src/game/` — gameplay systems: the first-person player controller
+  (kinematic Havok character motor, camera rig, pointer lock, movement
+  intent) and the dev-only test bridge. See
+  `docs/architecture/player-controller.md`.
+- `src/scenes/` — scene definitions: `movement-test` (boot scene, grey-box
+  traversal course) and `development` (Milestone 0.1 physics smoke scene).
 - `src/ui/` — DOM loading screen and fatal-error screen.
 
 Details in `docs/architecture/`.
 
 ## Current limitations
 
-- No gameplay of any kind (by design — see milestone scope).
+- No gameplay systems beyond traversal (by design — see milestone scope).
 - Settings are not persisted.
 - The asset manifest is empty; only the loading/caching machinery exists.
 - Babylon Inspector is not bundled.
 - No adaptive quality; only a device-pixel-ratio cap.
+- No camera feel effects (bob/sway/FOV) — deliberately deferred.
 
 ## Next milestone boundary
 
-Milestone 0.2 — First-Person Controller and Camera Foundation. Nothing from
-it (player movement, camera bobbing, pointer-lock gameplay controls) is
+Milestone 0.3 — Interaction Framework and Object Inspection. Nothing from it
+(interaction raycasts, prompts, doors, inventory, item inspection) is
 present in this codebase.

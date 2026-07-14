@@ -15,7 +15,7 @@ const IGNORED_CONSOLE_PATTERNS: RegExp[] = [
   /falling back to WebGL/i, // our own development fallback notice
 ];
 
-test('application boots to the development scene without errors', async ({ page }) => {
+test('application boots to the movement test scene without errors', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
 

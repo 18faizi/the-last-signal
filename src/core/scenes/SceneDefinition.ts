@@ -2,6 +2,8 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { AbstractEngine } from '@babylonjs/core/Engines/abstractEngine';
 import type { Disposable } from '../../app/lifecycle/Disposable';
 import type { EnvironmentInfo } from '../../config/environment';
+import type { SettingsStore } from '../../state/settingsStore';
+import type { InputManager } from '../input/InputManager';
 import type { PhysicsService } from '../physics/PhysicsService';
 import type { SceneId } from './SceneId';
 
@@ -11,6 +13,11 @@ import type { SceneId } from './SceneId';
  */
 export interface SceneHandle extends Disposable {
   readonly scene: Scene;
+  /**
+   * Optional scene-specific rows for the development debug overlay
+   * (label/value pairs). Polled on the overlay's refresh timer.
+   */
+  getDebugFields?(): ReadonlyArray<readonly [string, string]>;
 }
 
 /** Everything a scene needs to build itself; passed in explicitly. */
@@ -19,6 +26,10 @@ export interface SceneCreationContext {
   readonly canvas: HTMLCanvasElement;
   readonly physics: PhysicsService;
   readonly environment: EnvironmentInfo;
+  readonly input: InputManager;
+  readonly settings: SettingsStore;
+  /** Parent element for scene-owned DOM overlays (e.g. pointer-lock prompt). */
+  readonly overlayParent: HTMLElement;
   /** Reports physics availability so capability/debug state stays truthful. */
   readonly onPhysicsReady: () => void;
 }

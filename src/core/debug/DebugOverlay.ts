@@ -28,6 +28,9 @@ export class DebugOverlay implements Disposable {
   private readonly root: HTMLElement;
   private readonly provider: DebugStateProvider;
   private readonly valueCells: HTMLElement[] = [];
+  private readonly extraValueCells: HTMLElement[] = [];
+  private extraList: HTMLElement | null = null;
+  private extraLabelsKey = '';
   private intervalId: number | null = null;
   private readonly updateIntervalMs: number;
   private visible = false;
@@ -63,6 +66,9 @@ export class DebugOverlay implements Disposable {
     this.setVisible(false);
     this.root.replaceChildren();
     this.valueCells.length = 0;
+    this.extraValueCells.length = 0;
+    this.extraList = null;
+    this.extraLabelsKey = '';
   }
 
   private buildDom(): void {
@@ -98,6 +104,43 @@ export class DebugOverlay implements Disposable {
     for (let i = 0; i < values.length; i += 1) {
       const cell = this.valueCells[i];
       const value = values[i];
+      if (cell !== undefined && value !== undefined && cell.textContent !== value) {
+        cell.textContent = value;
+      }
+    }
+    this.refreshExtraRows(state.extra);
+  }
+
+  /**
+   * Scene-contributed rows. The DOM structure is rebuilt only when the set
+   * of labels changes (e.g. a scene transition); steady-state refreshes just
+   * update text content like the fixed rows above.
+   */
+  private refreshExtraRows(extra: ReadonlyArray<readonly [string, string]>): void {
+    const labels = extra.map(([label]) => label).join('|');
+    if (labels !== this.extraLabelsKey) {
+      this.extraLabelsKey = labels;
+      this.extraValueCells.length = 0;
+      this.extraList?.remove();
+      this.extraList = null;
+      if (extra.length > 0) {
+        const list = document.createElement('dl');
+        list.className = 'debug-list debug-list-extra';
+        for (const [label] of extra) {
+          const term = document.createElement('dt');
+          term.textContent = label;
+          const value = document.createElement('dd');
+          value.textContent = '—';
+          list.append(term, value);
+          this.extraValueCells.push(value);
+        }
+        this.root.append(list);
+        this.extraList = list;
+      }
+    }
+    for (let i = 0; i < extra.length; i += 1) {
+      const cell = this.extraValueCells[i];
+      const value = extra[i]?.[1];
       if (cell !== undefined && value !== undefined && cell.textContent !== value) {
         cell.textContent = value;
       }

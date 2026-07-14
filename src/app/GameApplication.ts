@@ -13,6 +13,7 @@ import { PhysicsService } from '../core/physics/PhysicsService';
 import { SceneManager } from '../core/scenes/SceneManager';
 import type { SceneCreationContext, SceneHandle } from '../core/scenes/SceneDefinition';
 import { developmentSceneDefinition } from '../scenes/development/DevelopmentScene';
+import { movementTestSceneDefinition } from '../scenes/movement-test/MovementTestScene';
 import { FatalErrorScreen } from '../ui/FatalErrorScreen';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import type { ApplicationContext } from './ApplicationContext';
@@ -81,8 +82,9 @@ export class GameApplication {
       await physics.loadRuntime();
 
       loadingScreen.setStage('Preparing systems', 0.55);
-      this.inputManager = new InputManager(dom.canvas);
-      this.cleanup.add(this.inputManager);
+      const inputManager = new InputManager(dom.canvas);
+      this.inputManager = inputManager;
+      this.cleanup.add(inputManager);
 
       const audioManager = new AudioManager(gameConfig.audio);
       this.cleanup.add(audioManager);
@@ -98,6 +100,7 @@ export class GameApplication {
         },
       });
       this.sceneManager.register(developmentSceneDefinition);
+      this.sceneManager.register(movementTestSceneDefinition);
       this.cleanup.add(this.sceneManager);
 
       if (environment.isDevelopment) {
@@ -113,11 +116,14 @@ export class GameApplication {
       this.cleanup.add(unsubscribeSettings);
 
       loadingScreen.setStage('Loading scene', 0.75);
-      await this.sceneManager.load('development', {
+      await this.sceneManager.load('movement-test', {
         engine,
         canvas: dom.canvas,
         physics,
         environment,
+        input: inputManager,
+        settings: this.context.settingsStore,
+        overlayParent: dom.appRoot,
         onPhysicsReady: () => {
           applicationStore.getState().setPhysicsStatus('ready');
           if (this.capabilities !== null) {
@@ -247,6 +253,7 @@ export class GameApplication {
       pointerLocked: document.pointerLockElement !== null,
       pressedKeys: snapshotKeys,
       buildMode: this.context.environment.mode,
+      extra: this.sceneManager?.currentHandle?.getDebugFields?.() ?? [],
     };
   }
 }
