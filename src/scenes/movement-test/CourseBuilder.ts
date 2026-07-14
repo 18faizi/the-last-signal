@@ -1,5 +1,11 @@
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
+// Side-effect imports: with subpath (tree-shaken) imports, the
+// createDynamicTexture/updateDynamicTexture engine methods live in separate
+// extension modules — one per backend. Omitting the WebGPU one crashes scene
+// creation on WebGPU-capable browsers while WebGL keeps working.
+import '@babylonjs/core/Engines/Extensions/engine.dynamicTexture';
+import '@babylonjs/core/Engines/WebGPU/Extensions/engine.dynamicTexture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
