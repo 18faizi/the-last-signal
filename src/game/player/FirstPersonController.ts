@@ -9,6 +9,8 @@ import type { InputManager } from '../../core/input/InputManager';
 import type { SettingsStore } from '../../state/settingsStore';
 import { CameraRig } from './CameraRig';
 import { isCrouchedState } from './CrouchState';
+import { InputLockSet, type InputLockToken, type InputSuspensionReason } from './InputLock';
+import type { InputSnapshot } from '../../core/input/InputSnapshot';
 import {
   computeMovementIntent,
   IDLE_INTENT,
@@ -34,6 +36,8 @@ export interface FirstPersonControllerDeps {
   readonly canvas: HTMLCanvasElement;
   /** Parent element for the pointer-lock prompt overlay. */
   readonly overlayParent: HTMLElement;
+  /** Scene-specific pointer-lock prompt label. */
+  readonly pointerLockPromptLabel?: string;
 }
 
 /** Plain-data snapshot for the debug overlay and the dev test bridge. */
@@ -83,6 +87,9 @@ export class FirstPersonController implements Disposable {
   private pointerLockBypass = false;
   private jumpQueued = false;
   private resetQueued = false;
+  private wasLocked = false;
+  private readonly inputLocks = new InputLockSet();
+  private frameSnapshot: InputSnapshot | null = null;
 
   private readonly tmpTarget = new Vector3();
 
@@ -104,7 +111,11 @@ export class FirstPersonController implements Disposable {
     this.cameraRig.setLook(spawn.yaw, spawn.pitch);
     this.cleanup.add(this.cameraRig);
 
-    this.pointerLock = new PointerLockController(deps.canvas, deps.overlayParent);
+    this.pointerLock = new PointerLockController(
+      deps.canvas,
+      deps.overlayParent,
+      deps.pointerLockPromptLabel,
+    );
     this.cleanup.add(this.pointerLock);
 
     // Edge actions are queued from the InputManager's keydown events rather
@@ -150,6 +161,65 @@ export class FirstPersonController implements Disposable {
     if (this.deps.environment.isDevelopment) {
       this.pointerLockBypass = enabled;
     }
+  }
+
+  // ----- narrow API for the interaction system ---------------------------
+
+  /**
+   * Suspends locomotion and gameplay look. Token-based: input resumes only
+   * when every acquired token has been released, so overlapping systems
+   * (inspection, reading) cannot resume each other's suspension.
+   */
+  acquireInputLock(reason: InputSuspensionReason): InputLockToken {
+    return this.inputLocks.acquire(reason);
+  }
+
+  releaseInputLock(token: InputLockToken): void {
+    this.inputLocks.release(token);
+    if (!this.inputLocks.isLocked) {
+      // Returning to gameplay: forget pre-overlay pressed keys and edge
+      // queues so held keys / buffered jumps never resume movement
+      // unexpectedly. Pointer deltas reset naturally on the next snapshot.
+      this.previousPressed = this.frameSnapshot?.pressedKeys ?? new Set();
+      this.jumpQueued = false;
+      this.resetQueued = false;
+    }
+  }
+
+  get isGameplayInputSuspended(): boolean {
+    return this.inputLocks.isLocked;
+  }
+
+  get inputSuspensionReasons(): readonly InputSuspensionReason[] {
+    return this.inputLocks.reasons;
+  }
+
+  /** Whether gameplay-style input (lock or dev bypass) is currently live. */
+  get isGameplayViewActive(): boolean {
+    return (this.pointerLock.isLocked || this.pointerLockBypass) && !this.inputLocks.isLocked;
+  }
+
+  /**
+   * The input snapshot taken this frame. Read-only for late observers
+   * (interaction/inspection) so the destructive `getSnapshot` is called
+   * exactly once per frame, by this controller.
+   */
+  get currentSnapshot(): InputSnapshot | null {
+    return this.frameSnapshot;
+  }
+
+  /** Copies the camera's world position and forward direction into refs (no allocation). */
+  getViewRay(originRef: Vector3, directionRef: Vector3): void {
+    originRef.copyFrom(this.cameraRig.camera.position);
+    const yaw = this.cameraRig.yaw;
+    const pitch = this.cameraRig.pitch;
+    const cosPitch = Math.cos(pitch);
+    directionRef.set(cosPitch * Math.sin(yaw), Math.sin(pitch), cosPitch * Math.cos(yaw));
+  }
+
+  /** Hides/shows the pointer-lock prompt (e.g. while a document is open). */
+  setPointerLockPromptSuppressed(suppressed: boolean): void {
+    this.pointerLock.setPromptSuppressed(suppressed);
   }
 
   respawn(): void {
@@ -221,11 +291,20 @@ export class FirstPersonController implements Disposable {
     );
 
     const snapshot = this.deps.input.getSnapshot();
+    this.frameSnapshot = snapshot;
+    const locked = this.pointerLock.isLocked;
+    // A fresh pointer lock can deliver one large spurious movement delta in
+    // some browsers; dropping the first locked frame prevents a camera jump.
+    const justRelocked = locked && !this.wasLocked;
+    this.wasLocked = locked;
+
     const movementActive =
-      (this.pointerLock.isLocked || this.pointerLockBypass) && snapshot.windowFocused;
+      (locked || this.pointerLockBypass) && snapshot.windowFocused && !this.inputLocks.isLocked;
 
     if (movementActive) {
-      this.cameraRig.applyLook(snapshot.pointer.deltaX, snapshot.pointer.deltaY);
+      if (!justRelocked) {
+        this.cameraRig.applyLook(snapshot.pointer.deltaX, snapshot.pointer.deltaY);
+      }
       this.currentIntent = computeMovementIntent(
         snapshot.pressedKeys,
         this.previousPressed,

@@ -17,6 +17,7 @@ export enum InputAction {
   ResetPlayer = 'reset-player',
   ToggleDebugOverlay = 'toggle-debug-overlay',
   ToggleDebugVisualization = 'toggle-debug-visualization',
+  ToggleInteractionRayDebug = 'toggle-interaction-ray-debug',
 }
 
 /** Maps KeyboardEvent.code values to actions. */
@@ -37,7 +38,15 @@ export const DEFAULT_BINDINGS: InputBindings = {
   Backquote: InputAction.ToggleDebugOverlay,
   F3: InputAction.ToggleDebugOverlay,
   F4: InputAction.ToggleDebugVisualization,
+  // F5 is browser refresh; F6 is the first safe function key after it.
+  F6: InputAction.ToggleInteractionRayDebug,
 };
+
+/** Human-readable key label for prompts, e.g. 'KeyE' → 'E'. */
+export function keyLabelForAction(bindings: InputBindings, action: InputAction): string {
+  const code = codesForAction(bindings, action)[0] ?? '';
+  return code.startsWith('Key') ? code.slice(3) : code;
+}
 
 export function actionForCode(bindings: InputBindings, code: string): InputAction | undefined {
   return bindings[code];

@@ -14,6 +14,7 @@ import { SceneManager } from '../core/scenes/SceneManager';
 import type { SceneCreationContext, SceneHandle } from '../core/scenes/SceneDefinition';
 import { developmentSceneDefinition } from '../scenes/development/DevelopmentScene';
 import { movementTestSceneDefinition } from '../scenes/movement-test/MovementTestScene';
+import { interactionTestSceneDefinition } from '../scenes/interaction-test/InteractionTestScene';
 import { FatalErrorScreen } from '../ui/FatalErrorScreen';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import type { ApplicationContext } from './ApplicationContext';
@@ -101,6 +102,7 @@ export class GameApplication {
       });
       this.sceneManager.register(developmentSceneDefinition);
       this.sceneManager.register(movementTestSceneDefinition);
+      this.sceneManager.register(interactionTestSceneDefinition);
       this.cleanup.add(this.sceneManager);
 
       if (environment.isDevelopment) {
@@ -116,13 +118,14 @@ export class GameApplication {
       this.cleanup.add(unsubscribeSettings);
 
       loadingScreen.setStage('Loading scene', 0.75);
-      await this.sceneManager.load('movement-test', {
+      await this.sceneManager.load('interaction-test', {
         engine,
         canvas: dom.canvas,
         physics,
         environment,
         input: inputManager,
         settings: this.context.settingsStore,
+        errorReporter,
         overlayParent: dom.appRoot,
         onPhysicsReady: () => {
           applicationStore.getState().setPhysicsStatus('ready');
@@ -139,8 +142,11 @@ export class GameApplication {
       this.attachResizeHandling(engine);
 
       loadingScreen.hide();
-      dom.readyMarker.textContent = gameConfig.readyMarkerText;
-      dom.readyMarker.hidden = false;
+      // The scene owns its development marker text (e.g. milestone label);
+      // the application only places whatever the active scene provides.
+      const markerText = this.sceneManager?.currentHandle?.markerText;
+      dom.readyMarker.textContent = markerText ?? '';
+      dom.readyMarker.hidden = markerText === undefined;
       dom.canvas.focus();
 
       this.transitionTo('running');

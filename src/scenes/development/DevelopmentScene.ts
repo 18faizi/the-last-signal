@@ -84,6 +84,7 @@ export const developmentSceneDefinition: SceneDefinition = {
 
     return {
       scene,
+      markerText: 'Milestone 0.1 — Foundation Ready',
       dispose(): void {
         // Scene.dispose releases meshes, materials, lights and cameras; the
         // physics plugin is disposed explicitly since the service handed us

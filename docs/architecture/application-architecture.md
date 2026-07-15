@@ -60,3 +60,18 @@ Exactly one `engine.runRenderLoop` callback exists, started once by
 `GameApplication` after the initial scene is ready. It looks up
 `SceneManager.currentHandle` every frame, so scene replacement never
 creates a second loop.
+
+## Milestone 0.3 addition: interaction layer
+
+Scenes may now compose the reusable interaction framework
+(`src/game/interaction/` — see `../gameplay/interaction-framework.md`): an
+`InteractionSystem` scene observer drives focus raycasting, prompts,
+hold/immediate interactions and the inspection/document overlay modes,
+suspending player input through the controller's token-lock API. The scene
+context gained `input`, `settings`, `errorReporter` and `overlayParent`;
+scene handles may expose `markerText` (scene-owned development marker) and
+`getDebugFields()`. UI layering is documented in `src/styles/global.css`
+(canvas 0 → marker 10 → pointer-lock prompt 15 → interaction prompt 16 →
+inspection 26 → document reader 28 → debug overlay 30 → loading 35 →
+fatal 40). The single-render-loop rule is unchanged — inspection swaps
+`scene.activeCamera`, never adds a loop.

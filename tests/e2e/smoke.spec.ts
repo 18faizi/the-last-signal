@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Browser smoke test for Milestone 0.1.
+ * Application boot smoke test (Milestone 0.1 foundation, current boot scene).
  *
  * Verifies the full startup path in headless Chromium: loading screen,
  * engine init (WebGL fallback — headless CI has no WebGPU), Havok physics,
@@ -47,7 +47,9 @@ test('application boots to the movement test scene without errors', async ({ pag
 
   // The development-ready marker is shown.
   await expect(page.getByTestId('ready-marker')).toBeVisible();
-  await expect(page.getByTestId('ready-marker')).toHaveText('Milestone 0.1 — Foundation Ready');
+  await expect(page.getByTestId('ready-marker')).toHaveText(
+    'Milestone 0.3 — Interaction Framework',
+  );
 
   // Debug overlay toggles on via the backquote shortcut and shows live data.
   await page.keyboard.press('Backquote');

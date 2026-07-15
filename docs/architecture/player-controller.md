@@ -166,3 +166,23 @@ transition 0.22 s; probes 0.6 m ground / 0.05 m clearance margin; look base
   landing audio and camera feel effects in later milestones.
 - A gameplay scene reuses `FirstPersonController` by passing its own spawn
   and overlay parent; nothing in `src/game/player` references the test course.
+
+## Milestone 0.3 additions
+
+The controller gained a deliberately narrow API for the interaction
+framework — it still knows nothing about targets, prompts, documents or
+inspection meshes:
+
+- `acquireInputLock(reason)` / `releaseInputLock(token)` — token-based
+  locomotion+look suspension (see `input-suspension.md`).
+- `isGameplayViewActive`, `isGameplayInputSuspended`, `inputSuspensionReasons`.
+- `currentSnapshot` — the frame's input snapshot, readable by late scene
+  observers so the destructive `InputManager.getSnapshot()` is called
+  exactly once per frame.
+- `getViewRay(originRef, directionRef)` — allocation-free camera origin +
+  forward for the interaction raycast.
+- `setPointerLockPromptSuppressed(bool)` — hides the click-to-enter prompt
+  while the document reader owns the screen.
+- The pointer-lock prompt label is scene-configurable
+  (`pointerLockPromptLabel`), and the first look delta after any pointer
+  re-lock is dropped to prevent relock camera jumps.

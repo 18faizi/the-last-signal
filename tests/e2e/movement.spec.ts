@@ -48,7 +48,7 @@ async function bootIntoMovementScene(
 
   // Pointer-lock prompt is visible before any interaction.
   await expect(page.locator('#pointer-lock-prompt')).toBeVisible();
-  await expect(page.locator('#pointer-lock-prompt')).toContainText('Click to enter movement test');
+  await expect(page.locator('#pointer-lock-prompt')).toContainText('Click to enter');
 
   // A real user gesture on the canvas requests pointer lock. Click near the
   // corner: the centered prompt element would otherwise intercept the click

@@ -3,6 +3,7 @@ import type { AbstractEngine } from '@babylonjs/core/Engines/abstractEngine';
 import type { Disposable } from '../../app/lifecycle/Disposable';
 import type { EnvironmentInfo } from '../../config/environment';
 import type { SettingsStore } from '../../state/settingsStore';
+import type { ErrorReporter } from '../errors/ErrorReporter';
 import type { InputManager } from '../input/InputManager';
 import type { PhysicsService } from '../physics/PhysicsService';
 import type { SceneId } from './SceneId';
@@ -13,6 +14,11 @@ import type { SceneId } from './SceneId';
  */
 export interface SceneHandle extends Disposable {
   readonly scene: Scene;
+  /**
+   * Development marker text shown bottom-right (e.g. the current milestone).
+   * Owned by the scene so milestone strings never live in bootstrap code.
+   */
+  readonly markerText?: string;
   /**
    * Optional scene-specific rows for the development debug overlay
    * (label/value pairs). Polled on the overlay's refresh timer.
@@ -28,6 +34,7 @@ export interface SceneCreationContext {
   readonly environment: EnvironmentInfo;
   readonly input: InputManager;
   readonly settings: SettingsStore;
+  readonly errorReporter: ErrorReporter;
   /** Parent element for scene-owned DOM overlays (e.g. pointer-lock prompt). */
   readonly overlayParent: HTMLElement;
   /** Reports physics availability so capability/debug state stays truthful. */

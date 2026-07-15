@@ -98,7 +98,7 @@ export class CourseBuilder {
    * Small floating development label (DynamicTexture on a plane; no external
    * assets). Non-colliding, unpickable.
    */
-  label(text: string, position: Vector3): Mesh {
+  label(text: string, position: Vector3, width = 3): Mesh {
     const texture = new DynamicTexture(
       `label-tex-${text}`,
       { width: 512, height: 128 },
@@ -115,7 +115,7 @@ export class CourseBuilder {
     material.useAlphaFromDiffuseTexture = true;
     material.backFaceCulling = false;
 
-    const plane = CreatePlane(`label-${text}`, { width: 3, height: 0.75 }, this.scene);
+    const plane = CreatePlane(`label-${text}`, { width, height: width / 4 }, this.scene);
     plane.position.copyFrom(position);
     plane.billboardMode = 7; // BILLBOARDMODE_ALL: labels always face the camera
     plane.material = material;

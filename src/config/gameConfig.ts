@@ -21,15 +21,13 @@ export interface AudioDefaults {
 export interface GameConfig {
   readonly title: string;
   readonly milestone: string;
-  readonly readyMarkerText: string;
   readonly gravity: GravityConfig;
   readonly audio: AudioDefaults;
 }
 
 export const gameConfig: GameConfig = {
   title: 'THE LAST SIGNAL',
-  milestone: '0.1',
-  readyMarkerText: 'Milestone 0.1 — Foundation Ready',
+  milestone: '0.3',
   gravity: { x: 0, y: -9.81, z: 0 },
   audio: {
     masterVolume: 0.8,

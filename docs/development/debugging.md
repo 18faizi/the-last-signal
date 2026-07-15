@@ -58,3 +58,18 @@ collide, are unpickable, and are disposed with the scene.
 Settings integration can be verified from the console in development via the
 test bridge: `__TLS_TEST__.setMouseSensitivity(3)` and
 `__TLS_TEST__.setInvertY(true)` write through the real settings store.
+
+## Milestone 0.3 additions
+
+With the interaction scene active, the overlay appends interaction rows:
+Int mode (gameplay/holding/transitioning/inspecting/reading), focused
+target id + label, focus distance, availability, target kind, raw ray
+classification, hold %, input locks, inspecting/reading flags.
+
+`F6` (development only) toggles interaction-ray visualization: the cast ray
+to its 8 m probe length, the hit point marker (green = focused target,
+yellow = target out of range, red = blocked by geometry) and the hit
+normal. Ray debug meshes are non-pickable — they can never influence the
+interaction raycast itself — non-colliding, disposed with the scene, and
+absent from production. `F3`/backquote and `F4` keep their Milestone 0.2
+meanings.

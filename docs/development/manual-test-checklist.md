@@ -92,3 +92,11 @@ Legend: `[ ]` unchecked / `[x]` verified.
       normal (magenta). Wireframes never collide with the player.
 - [ ] `pnpm build && pnpm preview`: production build shows NO debug overlay,
       no F4 visuals, and `window.__TLS_TEST__` is undefined.
+
+## Milestone 0.3
+
+The boot scene is now the interaction test room; see
+`manual-interaction-test-plan.md` for the full interaction test plan. The
+movement checklist above still applies in the movement-test scene (load it
+by changing the initial scene id in `GameApplication` temporarily, or rely
+on the automated movement tests which run in the interaction room).

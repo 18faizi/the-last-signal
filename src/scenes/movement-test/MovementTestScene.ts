@@ -66,6 +66,7 @@ export const movementTestSceneDefinition: SceneDefinition = {
 
     return {
       scene,
+      markerText: 'Milestone 0.2 — Movement Ready',
       getDebugFields: () => controller.getDebugFields(),
       dispose(): void {
         removeBridge();
@@ -164,8 +165,12 @@ function buildRamps(builder: CourseBuilder): void {
       rotationX: -angle,
       color: spec.color,
     });
-    builder.label(`RAMP ${spec.angleDeg}°`, new Vector3(spec.x, 1.2, 4.6));
   }
+  // Labels are staggered in height and kept narrow so the three billboards
+  // never overlap from the spawn viewing area.
+  builder.label('RAMP 15°', new Vector3(-18, 0.9, 4.4), 2);
+  builder.label('RAMP 40°', new Vector3(-13.5, 1.7, 4.4), 2);
+  builder.label('RAMP 60°', new Vector3(-9, 2.5, 4.4), 2);
 }
 
 function buildSteps(builder: CourseBuilder): void {

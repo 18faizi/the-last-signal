@@ -21,10 +21,15 @@ export class PointerLockController implements Disposable {
   private readonly changeListeners = new Set<PointerLockListener>();
   private prompt: HTMLElement | null = null;
   private locked = false;
+  private promptSuppressed = false;
 
-  constructor(canvas: HTMLCanvasElement, promptParent: HTMLElement) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    promptParent: HTMLElement,
+    promptLabel = 'Click to enter movement test',
+  ) {
     this.canvas = canvas;
-    this.buildPrompt(promptParent);
+    this.buildPrompt(promptParent, promptLabel);
 
     const requestLock = (): void => {
       if (!this.locked) {
@@ -66,6 +71,17 @@ export class PointerLockController implements Disposable {
     return this.locked;
   }
 
+  /**
+   * Suppresses the prompt while an overlay owns the screen (e.g. document
+   * reading releases pointer lock, but "click to enter" would be noise).
+   */
+  setPromptSuppressed(suppressed: boolean): void {
+    this.promptSuppressed = suppressed;
+    if (this.prompt !== null) {
+      this.prompt.hidden = suppressed || this.locked;
+    }
+  }
+
   onChange(listener: PointerLockListener): () => void {
     this.changeListeners.add(listener);
     return () => this.changeListeners.delete(listener);
@@ -87,14 +103,14 @@ export class PointerLockController implements Disposable {
     }
     this.locked = locked;
     if (this.prompt !== null) {
-      this.prompt.hidden = locked;
+      this.prompt.hidden = locked || this.promptSuppressed;
     }
     for (const listener of this.changeListeners) {
       listener(locked);
     }
   }
 
-  private buildPrompt(parent: HTMLElement): void {
+  private buildPrompt(parent: HTMLElement, promptLabel: string): void {
     const prompt = document.createElement('div');
     prompt.id = 'pointer-lock-prompt';
     prompt.setAttribute('role', 'button');
@@ -104,7 +120,7 @@ export class PointerLockController implements Disposable {
       'Enter movement test. Activating captures the mouse pointer; press Escape to release it.',
     );
     const label = document.createElement('span');
-    label.textContent = 'Click to enter movement test';
+    label.textContent = promptLabel;
     const hint = document.createElement('span');
     hint.className = 'pointer-lock-hint';
     hint.textContent = 'Esc releases the mouse · WASD move · Shift sprint · C crouch · Space jump';

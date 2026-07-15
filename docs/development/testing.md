@@ -74,3 +74,32 @@ Development builds (only) install `window.__TLS_TEST__` from
 The bridge is removed on scene disposal and is never installed in
 production builds (`environment.isDevelopment` gate; verify with
 `pnpm preview` — `window.__TLS_TEST__` is undefined there).
+
+## Milestone 0.3 additions
+
+New unit suites: interaction-mode transition table (valid + invalid),
+hold-interaction state machine (progress, cancellation on release / focus
+loss / target switch, complete-exactly-once, fresh-press requirement),
+focus stability (grace period, single enter/exit, prompt switching,
+priority tie-breaking), prompt formatting (immediate/hold/disabled/busy),
+inspection view math (rotation, pitch/zoom clamps, reset), input-lock
+tokens, document-definition validation (including dev-document word-count
+budgets) and InteractionRegistry mesh resolution (real Babylon `NullEngine`
+scene — child meshes resolve to the parent target).
+
+New Playwright suite `tests/e2e/interaction.spec.ts`: prompt flow over the
+toggle switch, hold progress/cancel/complete-once on the breaker, disabled
+reason, inspection (open, locomotion suspended, rotate, zoom, R reset,
+Escape close, movement resumes), document reader (open, content, scroll,
+close, movement resumes), and a 20× inspection+document repetition test
+asserting camera/mesh/observer counts and DOM overlay counts stay at
+baseline.
+
+### Bridge additions (development only)
+
+`getInteractionState()` (interaction snapshot + inspection view +
+document scroll), `getDiagnostics()` (camera/mesh/observer/DOM counts for
+the leak test), `activateTarget(id)` and `closeOverlays()` — the last two
+exist because headless CI cannot aim the camera precisely; they route
+through the same activation path as a real E press and are no-ops in
+production and outside gameplay mode.
