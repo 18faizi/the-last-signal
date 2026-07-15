@@ -56,8 +56,8 @@ describe('InputManager', () => {
   });
 
   it('accumulates wheel delta and resets it after a snapshot', () => {
-    target.dispatchEvent(new WheelEvent('wheel', { deltaY: 60 }));
-    target.dispatchEvent(new WheelEvent('wheel', { deltaY: 40 }));
+    window.dispatchEvent(new WheelEvent('wheel', { deltaY: 60 }));
+    window.dispatchEvent(new WheelEvent('wheel', { deltaY: 40 }));
     expect(manager.getSnapshot().wheelDelta).toBe(100);
     expect(manager.getSnapshot().wheelDelta).toBe(0);
   });
