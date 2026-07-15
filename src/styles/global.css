@@ -443,3 +443,188 @@ body {
   font-size: 0.8rem;
   text-align: center;
 }
+
+/* ---------- Milestone 0.4: Inspection overlay take button ---------- */
+
+.inspection-take-btn {
+  margin: 0.4rem 0 0.6rem;
+  padding: 0.4rem 1.1rem;
+  background: #1d2230;
+  color: #cfe0f0;
+  border: 1px solid #4a6080;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  pointer-events: auto;
+}
+
+.inspection-take-btn:hover {
+  background: #263040;
+  border-color: #6a90b0;
+}
+
+.inspection-take-btn[hidden] {
+  display: none;
+}
+
+/* ---------- Milestone 0.4: Inventory notification (z 17) ---------- */
+
+#inventory-notification {
+  position: absolute;
+  left: 50%;
+  bottom: 26%;
+  transform: translateX(-50%);
+  z-index: 17;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  background: rgb(10 12 18 / 82%);
+  border: 1px solid #2a4030;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  color: #8ecfa8;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.3s ease;
+}
+
+#inventory-notification[hidden] {
+  display: none;
+}
+
+#inventory-notification.inv-notif-fade {
+  opacity: 0;
+}
+
+.inv-notif-icon {
+  font-weight: 700;
+  color: #6eba86;
+}
+
+.inv-notif-text {
+  color: #b0d8bc;
+}
+
+/* ---------- Milestone 0.4: Inventory viewer overlay (z 27) ---------- */
+
+#inventory-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 27;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(5 6 10 / 80%);
+}
+
+#inventory-viewer[hidden] {
+  display: none;
+}
+
+.inv-viewer-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 86vw);
+  max-height: 75vh;
+  background: #12151e;
+  border: 1px solid #2a3040;
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+}
+
+.inv-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+}
+
+.inv-viewer-title {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.35em;
+  color: #c8d0e0;
+}
+
+.inv-viewer-close {
+  padding: 0.3rem 0.8rem;
+  background: #1d2230;
+  color: #e6e8ee;
+  border: 1px solid #333a4e;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.inv-viewer-close:hover {
+  background: #262c3d;
+}
+
+.inv-viewer-list {
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inv-viewer-empty {
+  color: #6d7383;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.inv-viewer-category {
+  list-style: none;
+  margin-bottom: 0.8rem;
+}
+
+.inv-viewer-category-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: #6d7383;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1d2230;
+  padding-bottom: 0.2rem;
+}
+
+.inv-viewer-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inv-viewer-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #181c28;
+}
+
+.inv-viewer-item:last-child {
+  border-bottom: none;
+}
+
+.inv-viewer-item-name {
+  font-size: 0.9rem;
+  color: #d8dbe4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.inv-viewer-item-qty {
+  font-size: 0.8rem;
+  color: #8a90a0;
+  margin-left: 0.5rem;
+}
+
+.inv-viewer-item-desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: #6d7383;
+}

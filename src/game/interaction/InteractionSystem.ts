@@ -29,6 +29,11 @@ import type { InspectionController } from './inspection/InspectionController';
 import type { DocumentController } from './documents/DocumentController';
 import type { InteractionDebugView } from './InteractionDebugView';
 
+export interface InventoryViewControls {
+  open(onClose?: () => void): void;
+  close(): void;
+}
+
 export interface InteractionSystemDeps {
   readonly scene: Scene;
   readonly player: FirstPersonController;
@@ -42,6 +47,8 @@ export interface InteractionSystemDeps {
   readonly config: InteractionConfig;
   /** Development-only ray visualization (F6); null in production. */
   readonly debugView: InteractionDebugView | null;
+  /** Inventory viewer (Tab key); null when not provided. */
+  readonly inventoryViewer?: InventoryViewControls | null;
 }
 
 /** Plain-data snapshot for the debug overlay and test bridge. */
@@ -109,6 +116,12 @@ export class InteractionSystem implements Disposable {
         this.deps.inspection.resetView();
       } else if (action === InputAction.ToggleInteractionRayDebug && this.deps.debugView !== null) {
         this.deps.debugView.toggle();
+      } else if (action === InputAction.ToggleInventory) {
+        if (this.mode === 'gameplay') {
+          this.openInventory();
+        } else if (this.mode === 'inventory') {
+          this.closeInventory();
+        }
       }
     });
     this.cleanup.add(unsubscribe);
@@ -185,6 +198,29 @@ export class InteractionSystem implements Disposable {
     return true;
   }
 
+  private openInventory(): void {
+    const viewer = this.deps.inventoryViewer;
+    if (viewer === undefined || viewer === null) {
+      return;
+    }
+    this.transition('inventory');
+    this.cancelHoldIfActive();
+    this.clearFocus();
+    this.deps.promptView.hide();
+    viewer.open(() => {
+      if (this.mode === 'inventory') {
+        this.transition('gameplay');
+      }
+    });
+  }
+
+  private closeInventory(): void {
+    this.deps.inventoryViewer?.close();
+    if (this.mode === 'inventory') {
+      this.transition('gameplay');
+    }
+  }
+
   /** Development/test only: closes any open overlay mode. */
   devCloseOverlays(): void {
     if (!this.deps.environment.isDevelopment) {
@@ -205,6 +241,15 @@ export class InteractionSystem implements Disposable {
   private update(): void {
     const deltaSeconds = Math.min(this.deps.scene.getEngine().getDeltaTime() / 1000, 0.05);
     const snapshot = this.deps.player.currentSnapshot;
+
+    if (this.mode === 'inventory') {
+      const viewer = this.deps.inventoryViewer;
+      if (viewer === undefined || viewer === null) {
+        this.transition('gameplay');
+      }
+      this.interactQueued = false;
+      return;
+    }
 
     if (this.mode === 'inspecting') {
       const pointerActive = this.deps.player.isPointerLocked || this.deps.environment.isDevelopment;

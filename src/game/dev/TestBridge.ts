@@ -5,6 +5,9 @@ import type { DocumentReaderView } from '../../ui/interaction/DocumentReaderView
 import type { InteractionDebugSnapshot, InteractionSystem } from '../interaction/InteractionSystem';
 import type { InspectionController } from '../interaction/inspection/InspectionController';
 import type { FirstPersonController, PlayerDebugSnapshot } from '../player/FirstPersonController';
+import type { InventoryService } from '../inventory/InventoryService';
+import type { PickupRegistry } from '../pickups/PickupRegistry';
+import type { DoorRegistry } from '../doors/DoorRegistry';
 
 /**
  * Development-only test bridge for browser automation.
@@ -27,6 +30,20 @@ export interface BridgeDiagnostics {
   readonly inspectionOverlayCount: number;
 }
 
+export interface InventoryBridgeSnapshot {
+  readonly itemCount: number;
+  readonly entries: ReadonlyArray<{ itemId: string; quantity: number }>;
+  readonly has: (itemId: string) => boolean;
+  readonly getQuantity: (itemId: string) => number;
+}
+
+export interface DoorBridgeSnapshot {
+  readonly doorId: string;
+  readonly physical: string;
+  readonly access: string;
+  readonly openFraction: number;
+}
+
 export interface TestBridge {
   getPlayerState(): PlayerDebugSnapshot;
   setPointerLockBypass(enabled: boolean): void;
@@ -43,6 +60,11 @@ export interface TestBridge {
   /** Dev-only direct activation (headless CI cannot aim precisely). */
   activateTarget?(targetId: string): boolean;
   closeOverlays?(): void;
+  /** Installed by the access-test scene (Milestone 0.4). */
+  getInventorySnapshot?(): InventoryBridgeSnapshot;
+  collectPickup?(pickupId: string): boolean;
+  getDoorState?(doorId: string): DoorBridgeSnapshot | null;
+  openDoor?(doorId: string): boolean;
 }
 
 declare global {
@@ -71,6 +93,87 @@ export function installTestBridge(
   return () => {
     if (window.__TLS_TEST__ === bridge) {
       delete window.__TLS_TEST__;
+    }
+  };
+}
+
+/**
+ * Adds access/inventory hooks to the already-installed bridge.
+ * Installed by the access-test scene (Milestone 0.4).
+ */
+export function installAccessBridge(
+  inventory: InventoryService,
+  pickupRegistry: PickupRegistry,
+  doorRegistry: DoorRegistry,
+  environment: EnvironmentInfo,
+): () => void {
+  if (!environment.isDevelopment) {
+    return () => undefined;
+  }
+  const bridge = window.__TLS_TEST__;
+  if (bridge === undefined) {
+    return () => undefined;
+  }
+
+  bridge.getInventorySnapshot = () => {
+    const snap = inventory.getSnapshot();
+    return {
+      itemCount: snap.itemTypeCount,
+      entries: snap.entries.map((e) => ({ itemId: e.itemId, quantity: e.quantity })),
+      has: (id: string) => snap.has(id),
+      getQuantity: (id: string) => snap.getQuantity(id),
+    };
+  };
+
+  bridge.collectPickup = (pickupId: string) => {
+    const target = pickupRegistry.get(pickupId);
+    if (target === undefined) {
+      return false;
+    }
+    if ('collect' in target && typeof (target as { collect?: unknown }).collect === 'function') {
+      (target as { collect: () => void }).collect();
+      return true;
+    }
+    // Direct / hold pickup: simulate interact
+    if ('interact' in target) {
+      (target as { interact: (ctx: unknown) => unknown }).interact({
+        playerPosition: { x: 0, y: 0, z: 0 },
+        distance: 1,
+      });
+      return true;
+    }
+    return false;
+  };
+
+  bridge.getDoorState = (doorId: string) => {
+    const door = doorRegistry.get(doorId);
+    if (door === undefined) {
+      return null;
+    }
+    const s = door.doorState;
+    return {
+      doorId,
+      physical: s.physical,
+      access: s.access,
+      openFraction: s.openFraction,
+    };
+  };
+
+  bridge.openDoor = (doorId: string) => {
+    const door = doorRegistry.get(doorId);
+    if (door === undefined) {
+      return false;
+    }
+    const denied = door.interact();
+    return denied === null;
+  };
+
+  return () => {
+    if (window.__TLS_TEST__ === bridge) {
+      delete bridge.getInventorySnapshot;
+      delete bridge.collectPickup;
+      delete bridge.getDoorState;
+      delete bridge.openDoor;
     }
   };
 }

@@ -186,8 +186,8 @@ export function createInteractionTestArea(
   );
   builder.label('PRIORITY PAIR', new Vector3(-3.2, 2.2, 5.5), 2);
 
-  // Development area labels.
-  builder.label('CONTROLS', new Vector3(0, 2.6, 8.6), 2.4);
+  // Development area labels (small dev-only sign; not content/art direction).
+  builder.label('DEV CONTROLS', new Vector3(0, 2.2, 8.6), 1.4);
   builder.label('INSPECT + READ', new Vector3(-6, 2.2, 1.5), 2.4);
   builder.label('INSPECT + READ', new Vector3(6, 2.2, 1.5), 2.4);
 

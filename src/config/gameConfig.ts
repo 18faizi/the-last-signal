@@ -27,7 +27,7 @@ export interface GameConfig {
 
 export const gameConfig: GameConfig = {
   title: 'THE LAST SIGNAL',
-  milestone: '0.3',
+  milestone: '0.4',
   gravity: { x: 0, y: -9.81, z: 0 },
   audio: {
     masterVolume: 0.8,

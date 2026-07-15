@@ -7,14 +7,16 @@
  * covers async setup (e.g. inspection construction) so duplicate entries
  * are rejected while a transition is in flight.
  */
-export type InteractionMode = 'gameplay' | 'holding' | 'inspecting' | 'reading' | 'transitioning';
+export type InteractionMode =
+  'gameplay' | 'holding' | 'inspecting' | 'reading' | 'transitioning' | 'inventory';
 
 const TRANSITIONS: Readonly<Record<InteractionMode, readonly InteractionMode[]>> = {
-  gameplay: ['holding', 'transitioning'],
+  gameplay: ['holding', 'transitioning', 'inventory'],
   holding: ['gameplay'],
   transitioning: ['inspecting', 'reading', 'gameplay'],
   inspecting: ['gameplay'],
   reading: ['gameplay'],
+  inventory: ['gameplay'],
 };
 
 export function canTransitionMode(from: InteractionMode, to: InteractionMode): boolean {
@@ -29,5 +31,7 @@ export function assertModeTransition(from: InteractionMode, to: InteractionMode)
 
 /** Gameplay-blocking modes suspend locomotion/look via input locks. */
 export function isOverlayMode(mode: InteractionMode): boolean {
-  return mode === 'inspecting' || mode === 'reading' || mode === 'transitioning';
+  return (
+    mode === 'inspecting' || mode === 'reading' || mode === 'transitioning' || mode === 'inventory'
+  );
 }

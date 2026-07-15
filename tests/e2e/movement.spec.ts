@@ -71,12 +71,18 @@ test('player can walk, stop, jump and crouch through the movement course', async
   expect(start.mode).toBe('idle');
 
   // Walk forward: position must advance along the facing direction.
+  // The access-test scene spawn faces +X (yaw=π/2), so use horizontal
+  // distance to avoid axis coupling.
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(1000);
   const walking = await getPlayerState(page);
   expect(walking.mode).toBe('walking');
   expect(walking.horizontalSpeed).toBeGreaterThan(1);
-  expect(walking.position.z).toBeGreaterThan(start.position.z + 1);
+  const walkDist = Math.hypot(
+    walking.position.x - start.position.x,
+    walking.position.z - start.position.z,
+  );
+  expect(walkDist).toBeGreaterThan(1);
 
   // Releasing input decelerates to a stop.
   await page.keyboard.up('KeyW');

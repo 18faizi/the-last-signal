@@ -6,7 +6,7 @@
  * been released. Tokens are unique objects, so releasing one system's lock
  * can never accidentally release another's, and double-release is a no-op.
  */
-export type InputSuspensionReason = 'inspection' | 'document' | 'transition';
+export type InputSuspensionReason = 'inspection' | 'document' | 'transition' | 'inventory';
 
 export interface InputLockToken {
   readonly reason: InputSuspensionReason;

@@ -15,6 +15,7 @@ import type { SceneCreationContext, SceneHandle } from '../core/scenes/SceneDefi
 import { developmentSceneDefinition } from '../scenes/development/DevelopmentScene';
 import { movementTestSceneDefinition } from '../scenes/movement-test/MovementTestScene';
 import { interactionTestSceneDefinition } from '../scenes/interaction-test/InteractionTestScene';
+import { accessTestSceneDefinition } from '../scenes/access-test/AccessTestScene';
 import { FatalErrorScreen } from '../ui/FatalErrorScreen';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import type { ApplicationContext } from './ApplicationContext';
@@ -103,6 +104,7 @@ export class GameApplication {
       this.sceneManager.register(developmentSceneDefinition);
       this.sceneManager.register(movementTestSceneDefinition);
       this.sceneManager.register(interactionTestSceneDefinition);
+      this.sceneManager.register(accessTestSceneDefinition);
       this.cleanup.add(this.sceneManager);
 
       if (environment.isDevelopment) {
@@ -118,7 +120,7 @@ export class GameApplication {
       this.cleanup.add(unsubscribeSettings);
 
       loadingScreen.setStage('Loading scene', 0.75);
-      await this.sceneManager.load('interaction-test', {
+      await this.sceneManager.load('access-test', {
         engine,
         canvas: dom.canvas,
         physics,

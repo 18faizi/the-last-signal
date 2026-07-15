@@ -107,13 +107,29 @@ export class InputManager implements Disposable {
     this.on(target, 'pointerup', (event: PointerEvent) => {
       this.pointerButtons.delete(event.button);
     });
-    this.on(target, 'pointermove', (event: PointerEvent) => {
+    // Listen on window so pointer moves are captured regardless of which element
+    // is under the cursor (e.g. inspection overlay sitting above the canvas).
+    // With pointer lock active (gameplay) the browser dispatches raw movement
+    // deltas to window as well as the lock-requesting element.
+    this.on(window, 'pointermove', (event: PointerEvent) => {
+      const clientDx = event.clientX - this.pointerX;
+      const clientDy = event.clientY - this.pointerY;
       this.pointerX = event.clientX;
       this.pointerY = event.clientY;
-      this.accumulatedDeltaX += event.movementX;
-      this.accumulatedDeltaY += event.movementY;
+      // movementX/Y are only reliable under an active pointer lock (gameplay).
+      // When no lock is held (inspection, UI overlays, CI bypass mode) fall back
+      // to clientX/Y position deltas so overlay mouse-drag interaction works.
+      if (document.pointerLockElement !== null) {
+        this.accumulatedDeltaX += event.movementX;
+        this.accumulatedDeltaY += event.movementY;
+      } else {
+        this.accumulatedDeltaX += clientDx;
+        this.accumulatedDeltaY += clientDy;
+      }
     });
-    this.on(target, 'wheel', (event: WheelEvent) => {
+    // Listen on window for wheel events so they are captured regardless of
+    // which element is under the cursor (e.g. inspection or document overlay).
+    this.on(window, 'wheel', (event: WheelEvent) => {
       this.accumulatedWheel += event.deltaY;
     });
     this.on(window, 'focus', () => {

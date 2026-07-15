@@ -95,6 +95,24 @@ export class InspectionController implements Disposable {
       this.scene.activeCamera = this.camera;
 
       this.overlay.show(target.inspectionTitle, target.inspectionDescription);
+
+      // Inspect-before-collect pickups: wire the TAKE ITEM button.
+      const collectAfterInspect =
+        'collectAfterInspect' in target &&
+        (target as { collectAfterInspect: boolean }).collectAfterInspect === true;
+      if (collectAfterInspect) {
+        const collectTarget = target as unknown as {
+          collect: () => void;
+          onCollect: (() => void) | null;
+        };
+        collectTarget.onCollect = () => {
+          this.closeRequested = true;
+        };
+        this.overlay.showTakeButton(() => {
+          collectTarget.collect();
+        });
+      }
+
       this.closeRequested = false;
       document.addEventListener('keydown', this.escListener);
     } catch (error) {

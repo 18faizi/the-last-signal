@@ -18,6 +18,8 @@ export enum InputAction {
   ToggleDebugOverlay = 'toggle-debug-overlay',
   ToggleDebugVisualization = 'toggle-debug-visualization',
   ToggleInteractionRayDebug = 'toggle-interaction-ray-debug',
+  ToggleDoorDebug = 'toggle-door-debug',
+  ToggleInventory = 'toggle-inventory',
 }
 
 /** Maps KeyboardEvent.code values to actions. */
@@ -40,6 +42,8 @@ export const DEFAULT_BINDINGS: InputBindings = {
   F4: InputAction.ToggleDebugVisualization,
   // F5 is browser refresh; F6 is the first safe function key after it.
   F6: InputAction.ToggleInteractionRayDebug,
+  F7: InputAction.ToggleDoorDebug,
+  Tab: InputAction.ToggleInventory,
 };
 
 /** Human-readable key label for prompts, e.g. 'KeyE' → 'E'. */
