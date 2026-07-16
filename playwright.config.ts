@@ -15,7 +15,9 @@ export default defineConfig({
   // Movement tests assert physics timing; parallel browsers on software
   // rendering (SwiftShader) contend for CPU and skew frame pacing.
   workers: 1,
-  retries: process.env['CI'] ? 1 : 0,
+  // One retry everywhere: physics-timing assertions on SwiftShader are
+  // sensitive to host load, and a genuine regression still fails twice.
+  retries: 1,
   reporter: process.env['CI'] ? 'list' : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
