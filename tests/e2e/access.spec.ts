@@ -20,7 +20,7 @@ async function boot(page: Page, errors: { console: string[]; page: string[] }): 
   page.on('pageerror', (error) => {
     errors.page.push(error.message);
   });
-  await page.goto('/');
+  await page.goto('/?scene=access-test');
   await expect(page.locator('#loading-root')).toBeHidden({ timeout: 30_000 });
   await expect(page.locator('#fatal-error-root')).toBeHidden();
   await page.locator('#game-canvas').click({ position: { x: 40, y: 40 } });

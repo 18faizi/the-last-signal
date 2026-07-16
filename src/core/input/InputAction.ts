@@ -20,6 +20,10 @@ export enum InputAction {
   ToggleInteractionRayDebug = 'toggle-interaction-ray-debug',
   ToggleDoorDebug = 'toggle-door-debug',
   ToggleInventory = 'toggle-inventory',
+  /** F8: open/close the development teleport menu (facility scene only). */
+  ToggleTeleport = 'toggle-teleport',
+  /** F9: toggle facility zone/trigger debug visualization (facility scene only). */
+  ToggleFacilityDebug = 'toggle-facility-debug',
 }
 
 /** Maps KeyboardEvent.code values to actions. */
@@ -44,6 +48,8 @@ export const DEFAULT_BINDINGS: InputBindings = {
   F6: InputAction.ToggleInteractionRayDebug,
   F7: InputAction.ToggleDoorDebug,
   Tab: InputAction.ToggleInventory,
+  F8: InputAction.ToggleTeleport,
+  F9: InputAction.ToggleFacilityDebug,
 };
 
 /** Human-readable key label for prompts, e.g. 'KeyE' → 'E'. */

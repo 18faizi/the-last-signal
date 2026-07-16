@@ -12,10 +12,12 @@ import { InputManager } from '../core/input/InputManager';
 import { PhysicsService } from '../core/physics/PhysicsService';
 import { SceneManager } from '../core/scenes/SceneManager';
 import type { SceneCreationContext, SceneHandle } from '../core/scenes/SceneDefinition';
+import { SCENE_IDS, type SceneId } from '../core/scenes/SceneId';
 import { developmentSceneDefinition } from '../scenes/development/DevelopmentScene';
 import { movementTestSceneDefinition } from '../scenes/movement-test/MovementTestScene';
 import { interactionTestSceneDefinition } from '../scenes/interaction-test/InteractionTestScene';
 import { accessTestSceneDefinition } from '../scenes/access-test/AccessTestScene';
+import { facilityGreyboxSceneDefinition } from '../scenes/facility-greybox/FacilityGreyboxScene';
 import { FatalErrorScreen } from '../ui/FatalErrorScreen';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import type { ApplicationContext } from './ApplicationContext';
@@ -105,6 +107,7 @@ export class GameApplication {
       this.sceneManager.register(movementTestSceneDefinition);
       this.sceneManager.register(interactionTestSceneDefinition);
       this.sceneManager.register(accessTestSceneDefinition);
+      this.sceneManager.register(facilityGreyboxSceneDefinition);
       this.cleanup.add(this.sceneManager);
 
       if (environment.isDevelopment) {
@@ -120,7 +123,14 @@ export class GameApplication {
       this.cleanup.add(unsubscribeSettings);
 
       loadingScreen.setStage('Loading scene', 0.75);
-      await this.sceneManager.load('access-test', {
+      // Allow a ?scene= URL parameter to override the boot scene — used by
+      // legacy e2e tests that target non-default scenes (e.g. access-test).
+      const rawSceneParam = new URLSearchParams(window.location.search).get('scene');
+      const bootSceneId: SceneId =
+        rawSceneParam !== null && (SCENE_IDS as readonly string[]).includes(rawSceneParam)
+          ? (rawSceneParam as SceneId)
+          : 'facility-greybox';
+      await this.sceneManager.load(bootSceneId, {
         engine,
         canvas: dom.canvas,
         physics,

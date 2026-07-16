@@ -4,23 +4,22 @@ A browser-based atmospheric first-person mystery game set inside an abandoned
 telecommunications relay station in northern Pakistan. Built with Babylon.js
 and TypeScript.
 
-## Current milestone: 0.3 — Interaction Framework and Object Inspection
+## Current milestone: 0.5 — Facility Greybox and Progression Skeleton
 
-Milestone 0.1 established the technical foundation; 0.2 the first-person
-controller. Milestone 0.3 adds the reusable interaction language: focus
-detection with contextual prompts, immediate and hold-to-interact
-activation, object inspection (rotate/zoom an isolated model), a typed
-readable-document reader, disabled/blocked states, and interaction
-debugging — exercised in a grey-box interaction test room. **Still no
-story systems**: no doors, keys, inventory, puzzles, saves, enemies or
-audio content.
+Milestones 0.1–0.4 established the engine foundation, first-person controller,
+interaction framework, and the door/lock/key/inventory system. Milestone 0.5
+adds the full greybox layout of the facility (9 zones, 6 doors, 7 pickups),
+a monotonic progression phase state machine, zone trigger detection via AABB
+polling, checkpoint and teleport registries, F8 teleport menu and F9 facility
+debug overlay, static validator for level-design integrity (duplicate IDs,
+softlock detection), and the `facility-greybox` boot scene.
 
-### Controls (interaction test scene)
+### Controls (facility greybox scene)
 
 Click the canvas to capture the mouse (Esc releases). `WASD` move ·
-`Shift` sprint · `C`/`Ctrl` crouch · `Space` jump · `E` interact
-(`HOLD E` where prompted) · in inspection: mouse rotate, wheel zoom, `R`
-reset, `Esc` close · `R` respawn (dev, gameplay only) · `` ` ``/`F3` debug
+`Shift` sprint · `C`/`Ctrl` crouch · `Space` jump · `E` interact ·
+`R` respawn to last checkpoint · `F7` respawn to spawn · `F8` teleport
+menu (dev) · `F9` facility debug overlay (dev) · `` ` ``/`F3` engine debug
 overlay (dev) · `F4` player debug (dev) · `F6` interaction-ray debug (dev).
 
 ## Requirements
@@ -82,9 +81,13 @@ included `vercel.json`. See `docs/production/deployment.md`.
   intent), the interaction framework (targets, registry, raycasting, hold,
   inspection, documents — see `docs/gameplay/interaction-framework.md`)
   and the dev-only test bridge.
-- `src/scenes/` — scene definitions: `interaction-test` (boot scene),
-  `movement-test` (grey-box traversal course) and `development`
-  (Milestone 0.1 physics smoke scene).
+- `src/scenes/` — scene definitions: `facility-greybox` (boot scene,
+  Milestone 0.5), `access-test` (Milestone 0.4), `interaction-test`
+  (Milestone 0.3), `movement-test` (grey-box traversal course) and
+  `development` (Milestone 0.1 physics smoke scene).
+- `src/game/facility/` — progression system: `ProgressionPhase`,
+  `FacilityRuntimeState`, `ZoneRegistry`, `TriggerVolumeSet`,
+  `CheckpointRegistry`, `TeleportRegistry`, `FacilityValidator`.
 - `src/ui/` — DOM loading screen and fatal-error screen.
 
 Details in `docs/architecture/`.
@@ -100,6 +103,6 @@ Details in `docs/architecture/`.
 
 ## Next milestone boundary
 
-Milestone 0.4 — Doors, Locks, Keys and Contextual Inventory. Nothing from
-it (functional doors, key ownership, inventory) is present in this
-codebase.
+Milestone 0.6 — Narrative Layer. Story text, ambient audio, save/load,
+main menu. The greybox geometry and all progression systems from 0.5 are
+the stable foundation it will build on.

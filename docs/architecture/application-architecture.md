@@ -17,7 +17,11 @@ main.ts
        ├─ AudioManager   → Howler buses (no audio played in 0.1)
        ├─ AssetManager   → typed manifest loading/caching (manifest empty in 0.1)
        ├─ SceneManager   → owns the active scene, transitions, disposal
-       │    └─ developmentSceneDefinition
+       │    ├─ developmentSceneDefinition
+       │    ├─ movementTestSceneDefinition
+       │    ├─ interactionTestSceneDefinition
+       │    ├─ accessTestSceneDefinition
+       │    └─ facilityGreyboxSceneDefinition  ← boot scene (Milestone 0.5)
        ├─ DebugOverlay   → dev-only diagnostics (timer-driven DOM updates)
        └─ single render loop (renders SceneManager.currentHandle per frame)
 ```
@@ -60,6 +64,14 @@ Exactly one `engine.runRenderLoop` callback exists, started once by
 `GameApplication` after the initial scene is ready. It looks up
 `SceneManager.currentHandle` every frame, so scene replacement never
 creates a second loop.
+
+## Boot scene selection
+
+By default the application loads the `facility-greybox` scene. A `?scene=`
+URL query parameter overrides this — for example `/?scene=access-test` loads
+the Milestone 0.4 access-test scene. Only registered scene IDs (see
+`src/core/scenes/SceneId.ts`) are accepted; unrecognised values fall back to
+`facility-greybox`. This is used by the legacy Milestone 0.3/0.4 e2e tests.
 
 ## Milestone 0.3 addition: interaction layer
 

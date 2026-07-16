@@ -229,6 +229,15 @@ export class FirstPersonController implements Disposable {
     }
   }
 
+  /**
+   * Teleport the player to an arbitrary world position and look direction.
+   * Development-only; used by the F8 teleport menu in the facility scene.
+   */
+  teleportTo(position: Vector3, yaw: number): void {
+    this.motor.respawn(position);
+    this.cameraRig.setLook(yaw, 0);
+  }
+
   getDebugSnapshot(): PlayerDebugSnapshot {
     const state = this.motor.motorState;
     return {

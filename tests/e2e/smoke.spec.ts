@@ -15,7 +15,7 @@ const IGNORED_CONSOLE_PATTERNS: RegExp[] = [
   /falling back to WebGL/i, // our own development fallback notice
 ];
 
-test('application boots to the access-test scene without errors', async ({ page }) => {
+test('application boots to the facility-greybox scene without errors', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
 
@@ -47,7 +47,7 @@ test('application boots to the access-test scene without errors', async ({ page 
 
   // The development-ready marker is shown.
   await expect(page.getByTestId('ready-marker')).toBeVisible();
-  await expect(page.getByTestId('ready-marker')).toHaveText('Milestone 0.4 — Access and Inventory');
+  await expect(page.getByTestId('ready-marker')).toHaveText('Milestone 0.5 — Facility Greybox');
 
   // Debug overlay toggles on via the backquote shortcut and shows live data.
   await page.keyboard.press('Backquote');

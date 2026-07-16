@@ -103,3 +103,51 @@ the leak test), `activateTarget(id)` and `closeOverlays()` — the last two
 exist because headless CI cannot aim the camera precisely; they route
 through the same activation path as a real E press and are no-ops in
 production and outside gameplay mode.
+
+## Milestone 0.5 additions
+
+New unit suites (all Babylon-free, run in vitest/jsdom):
+
+- `progressionPhase.test.ts` — `canAdvancePhase`, `tryAdvancePhase`,
+  `comparePhase`, `isPhaseComplete`; covers valid steps, invalid skips,
+  bidirectional branch, terminal state, full linear path.
+- `zoneRegistry.test.ts` — register/duplicate, enter/exit/discovered events,
+  re-entry idempotency, multi-zone overlap, counts, reset, unsubscribe,
+  listener error isolation.
+- `triggerVolume.test.ts` — one-shot firing, repeatable volumes,
+  enter/exit callbacks, error swallowing, reset and clear.
+- `checkpoint.test.ts` — register, activate, latestCheckpoint (timestamp
+  ordering), counts, reset, getAll.
+- `facilityRuntimeState.test.ts` — phase advancement, record methods
+  idempotency, `getSnapshot`, reset, subscribe/unsubscribe, error swallowing.
+- `facilityValidator.test.ts` — valid input passes, duplicate IDs, unknown
+  item refs, softlock detection (item behind its own door), zone refs, empty
+  zoneId skip.
+- `teleportDefinition.test.ts` — `validateTeleportDefinition` (empty id/label,
+  non-finite coords/yaw, negative finite values accepted); `TeleportRegistry`
+  (register, duplicate, invalid, getAll, clear, unknown get).
+
+New Playwright suite `tests/e2e/facility.spec.ts` (15 tests): boots the
+facility scene, checks ready marker, verifies bridge availability and initial
+phase, inventory empty start, compound gate key/door pair (locked → key →
+open → key retained), AnyOf tunnel shortcut (gate key path and maintenance
+card path independently), AllOf relay room (each item alone fails, both
+together succeed), override seal consumption (quantity decrements by 1),
+`teleportTo` bridge (known position verifies player X, unknown returns false),
+generator door (wrong key rejected, correct key accepted), supervisor door,
+rooftop door, lifecycle leak test.
+
+### Bridge additions (facility scene, development only)
+
+`getFacilityState()` returns a plain-data snapshot of `FacilityRuntimeState`:
+progression phase, completion flag, and arrays of collected/opened/discovered
+IDs. `teleportTo(id)` warps the player to a registered `TeleportDefinition`
+and returns a boolean success flag. Both are removed on scene disposal.
+
+### Boot scene override
+
+`access.spec.ts` and `interaction.spec.ts` navigate to `/?scene=access-test`
+so they load the Milestone 0.4 scene rather than the new default
+`facility-greybox`. The `GameApplication` reads the `?scene=` query parameter
+and validates it against `SCENE_IDS` before loading; unknown values fall back
+to the default boot scene.

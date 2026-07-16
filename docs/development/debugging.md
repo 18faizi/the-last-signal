@@ -73,3 +73,28 @@ normal. Ray debug meshes are non-pickable — they can never influence the
 interaction raycast itself — non-colliding, disposed with the scene, and
 absent from production. `F3`/backquote and `F4` keep their Milestone 0.2
 meanings.
+
+## Milestone 0.5 additions
+
+### F8 — Teleport menu
+
+Available in the facility-greybox scene only. Shows a clickable list of
+named positions (`TeleportDefinition` registry). Click a row to call
+`FirstPersonController.teleportTo(position, yaw)`. The menu is a plain DOM
+overlay managed by `TeleportMenuOverlay` and removed on scene disposal.
+
+### F9 — Facility debug overlay
+
+Available in the facility-greybox scene only. Shows current progression
+phase, key zone membership, discovery count, opened door IDs and collected
+pickup IDs. Refreshes every 30 frames. Managed by `FacilityDebugOverlay`.
+
+### Test bridge additions (facility scene, development only)
+
+- `getFacilityState()` — `{ progressionPhase, isComplete, collectedPickupIds,
+openedDoorIds, discoveredZoneIds }` snapshot from `FacilityRuntimeState`.
+- `teleportTo(id)` — teleports the player to a named `TeleportDefinition`;
+  returns `true` on success, `false` for unknown IDs.
+
+Both bridge keys are installed when the facility scene is created and removed
+when it is disposed. They do not exist when any other scene is active.
