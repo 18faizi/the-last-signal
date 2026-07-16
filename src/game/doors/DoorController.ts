@@ -19,6 +19,7 @@ import { AccessEvaluator } from '../access/AccessEvaluator';
 import type { LockDefinition } from '../access/LockDefinition';
 import { createLock } from '../access/LockState';
 import type { LockState } from '../access/LockState';
+import type { PowerAccessQuery } from '../access/PowerAccessQuery';
 import type { DoorDefinition } from './DoorDefinition';
 import { createDoorState } from './DoorState';
 import type { DoorState } from './DoorState';
@@ -69,6 +70,14 @@ export class DoorController {
     scene: Scene,
     inventory: InventoryService | null,
     itemRegistry: InventoryRegistry,
+    /**
+     * Optional power query, enabling AccessRequirement trees that reference
+     * `requirePower(circuitId)` (alone or combined via allOf/anyOf with item
+     * requirements). DoorController itself stays generic — it never special-
+     * cases power; it just forwards this to the same composable
+     * AccessEvaluator every other lock uses.
+     */
+    powerQuery: PowerAccessQuery | null = null,
   ) {
     this.id = definition.id;
     this.definition = definition;
@@ -81,7 +90,7 @@ export class DoorController {
     if (hasDef && inventory !== null) {
       this.lockDef = definition.lock ?? null;
       this.lockState = createLock(this.lockDef.id, 'locked');
-      this.evaluator = new AccessEvaluator(inventory, itemRegistry);
+      this.evaluator = new AccessEvaluator(inventory, itemRegistry, powerQuery);
     } else {
       this.lockDef = null;
       this.lockState = null;

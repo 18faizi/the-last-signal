@@ -67,3 +67,19 @@ The facility scene polls the player's AABB position every frame and calls
 | `fg-zone-supervisor-office` | `SupervisorOfficeReached` |
 | `fg-zone-rooftop`           | `RooftopAccessed`         |
 | (all key zones discovered)  | `GreyboxComplete`         |
+
+## Milestone 0.6 extension: power progression
+
+`GreyboxComplete` is no longer the enum's terminal value — it gained one new
+successor, `GeneratorStarted`, opening a five-phase power chain:
+
+```
+GreyboxComplete → GeneratorStarted → MainPowerAvailable → ControlRoomPowered
+  → ReceiverActivated → PowerNetworkOperational
+```
+
+This is purely additive (see `../level-design/power-progression.md` for the
+full reasoning and the trigger point for each transition) — every M0.5
+transition, and `isPhaseComplete()`'s `GreyboxComplete`-only contract, is
+unchanged. `FacilityRuntimeState.isComplete` still latches `true` at
+`GreyboxComplete` and stays `true` through the rest of the power chain.

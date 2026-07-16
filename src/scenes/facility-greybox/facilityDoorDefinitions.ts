@@ -7,7 +7,8 @@
  */
 import type { DoorDefinition } from '../../game/doors/DoorDefinition';
 import type { LockDefinition } from '../../game/access/LockDefinition';
-import { requireItem, anyOf, allOf } from '../../game/access/AccessRequirement';
+import { requireItem, requirePower, anyOf, allOf } from '../../game/access/AccessRequirement';
+import { CIRCUIT_TUNNEL_ID } from './power/facilityPowerDefinitions';
 
 // ----- Lock definitions --------------------------------------------------
 
@@ -23,10 +24,20 @@ export const LOCK_GENERATOR: LockDefinition = {
   lockedReason: 'REQUIRES GENERATOR KEY',
 };
 
+/**
+ * Combined inventory+power access (spec section 23 demonstration): the
+ * tunnel maintenance door's actuator is on the tunnel circuit, so it needs
+ * both the maintenance card AND the tunnel circuit energized. DoorController
+ * stays fully generic — this is just another AllOf requirement tree fed to
+ * the same AccessEvaluator every other lock uses.
+ */
 export const LOCK_TUNNEL_MAINTENANCE: LockDefinition = {
   id: 'fg-lock-tunnel-maintenance',
-  requirement: requireItem('fg-maintenance-card'),
-  lockedReason: 'REQUIRES MAINTENANCE CARD',
+  requirement: allOf(
+    requireItem('fg-maintenance-card'),
+    requirePower(CIRCUIT_TUNNEL_ID, { poweredReason: 'TUNNEL CIRCUIT NOT ENERGIZED' }),
+  ),
+  lockedReason: 'REQUIRES MAINTENANCE CARD AND TUNNEL POWER',
 };
 
 /** AnyOf: maintenance card OR compound gate key (master-key scenario). */

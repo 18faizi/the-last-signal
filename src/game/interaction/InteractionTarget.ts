@@ -6,7 +6,8 @@ import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 export type InteractionTargetId = string;
 
 /** How pressing the interaction key behaves for a target. */
-export type TargetInteractionKind = 'immediate' | 'hold' | 'inspect' | 'read' | 'disabled';
+export type TargetInteractionKind =
+  'immediate' | 'hold' | 'inspect' | 'read' | 'panel' | 'disabled';
 
 export interface InteractionPromptSpec {
   /** Action verb shown in the prompt, e.g. "USE", "INSPECT", "READ". */
@@ -88,4 +89,14 @@ export interface ReadableTarget extends InteractionTarget {
 
 export function isReadableTarget(target: InteractionTarget): target is ReadableTarget {
   return target.kind === 'read';
+}
+
+/** Targets that open the full-screen distribution panel overlay. */
+export interface PanelTarget extends InteractionTarget {
+  readonly kind: 'panel';
+  readonly panelId: string;
+}
+
+export function isPanelTarget(target: InteractionTarget): target is PanelTarget {
+  return target.kind === 'panel';
 }

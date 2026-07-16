@@ -19,7 +19,13 @@ export type ProgressionPhase =
   | 'StaffQuartersReached'
   | 'SupervisorOfficeReached'
   | 'RooftopAccessed'
-  | 'GreyboxComplete';
+  | 'GreyboxComplete'
+  // ----- Milestone 0.6: power network progression, extending GreyboxComplete -----
+  | 'GeneratorStarted'
+  | 'MainPowerAvailable'
+  | 'ControlRoomPowered'
+  | 'ReceiverActivated'
+  | 'PowerNetworkOperational';
 
 /**
  * Valid forward transitions.  The state machine permits some branches:
@@ -37,7 +43,18 @@ const TRANSITIONS: Readonly<Record<ProgressionPhase, readonly ProgressionPhase[]
   StaffQuartersReached: ['SupervisorOfficeReached'],
   SupervisorOfficeReached: ['RooftopAccessed'],
   RooftopAccessed: ['GreyboxComplete'],
-  GreyboxComplete: [],
+  // Milestone 0.6 chain: purely additive — GreyboxComplete gains one new
+  // successor, so every M0.5 assertion that it was terminal (`[]`) would
+  // need to keep passing only if it asserted no *specific* forward
+  // transition; existing M0.5 tests assert forward transitions FROM
+  // RooftopAccessed and the reachability of GreyboxComplete itself, not that
+  // GreyboxComplete has no successors, so this is backward-compatible.
+  GreyboxComplete: ['GeneratorStarted'],
+  GeneratorStarted: ['MainPowerAvailable'],
+  MainPowerAvailable: ['ControlRoomPowered'],
+  ControlRoomPowered: ['ReceiverActivated'],
+  ReceiverActivated: ['PowerNetworkOperational'],
+  PowerNetworkOperational: [],
 };
 
 export function canAdvancePhase(from: ProgressionPhase, to: ProgressionPhase): boolean {
@@ -73,6 +90,11 @@ const PHASE_ORDER: readonly ProgressionPhase[] = [
   'SupervisorOfficeReached',
   'RooftopAccessed',
   'GreyboxComplete',
+  'GeneratorStarted',
+  'MainPowerAvailable',
+  'ControlRoomPowered',
+  'ReceiverActivated',
+  'PowerNetworkOperational',
 ];
 
 /** Returns a positive number when a > b, negative when a < b, 0 when equal. */

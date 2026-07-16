@@ -151,3 +151,135 @@ so they load the Milestone 0.4 scene rather than the new default
 `facility-greybox`. The `GameApplication` reads the `?scene=` query parameter
 and validates it against `SCENE_IDS` before loading; unknown values fall back
 to the default boot scene.
+
+## Milestone 0.6 additions
+
+New unit suites (all Babylon-free): `powerNetwork.test.ts`,
+`powerAllocation.test.ts`, `powerValidation.test.ts`, `generatorState.test.ts`,
+`generatorController.test.ts`, `breakerController.test.ts`,
+`distributionPanelController.test.ts`, `emergencyPowerController.test.ts`,
+`powerAccessEvaluator.test.ts` (the new `power` `AccessRequirement` kind,
+including the `AllOf` combined-requirement fix below),
+`facilityRuntimeStatePower.test.ts`, `progressionPhasePower.test.ts`.
+
+**A real bug caught by these tests**: `AccessEvaluator`'s `all-of` case
+originally gated denial purely on `missingItems.length > 0` — a denied
+`power` requirement contributes zero missing item ids (there's nothing to
+add to inventory), so an `AllOf(item, power)` tree with the item present but
+power absent was silently falling through to `allowed`. Fixed by tracking
+denial itself (`anyDenied`), not just the accumulated missing-item list; see
+`AccessEvaluator.ts`'s `all-of` case and its comment.
+
+New Playwright suite `tests/e2e/power.spec.ts`: generator readiness gating,
+bridge-driven startup, the real starter hold (see below), main-breaker
+gating, distribution panel open/close, capacity allocation and rejection,
+per-load powering, the combined inventory+power tunnel door (including the
+fail-safe-on-power-loss case), the receiver's one-shot activation,
+respawn/reset preservation, F10 toggling, seven repetition/lifecycle tests,
+and a dedicated full-progression test (see below).
+
+### The starter hold: load-robust polling, not a fixed sleep, and used sparingly
+
+Hold progress is driven by simulated delta time. `InteractionSystem.update()`
+clamps per-frame delta to 50ms (`Math.min(getDeltaTime()/1000, 0.05)`) — a
+pre-existing, project-wide safety clamp, not something introduced for
+Milestone 0.6 — and `GeneratorController.update()`'s warm-up accumulator uses
+the identical clamp pattern. Under headless SwiftShader running this scene,
+directly-measured frame pacing can fall well below 20fps (a clean, otherwise-
+idle isolated run still measured ~2fps via `requestAnimationFrame` counting),
+which means both the 2-second starter hold and the 5-second warm-up can take
+tens of real-world seconds to complete — a fixed `page.waitForTimeout(2300)`
+while holding `KeyE` is nowhere near reliable (an isolated diagnostic run
+showed only ~0.26 of a 2-second hold's progress after 2.3 real-world seconds).
+
+Consequences applied in `power.spec.ts`:
+
+1. **`holdStarterUntilCranked()`** holds the key down and polls real generator
+   state instead of releasing after a fixed delay — robust regardless of host
+   load. It retries the hold from scratch (fresh teleport, fresh keydown) if
+   an attempt gets cancelled before completing (see bug 4 below) — safe
+   because a cancelled hold leaves `GeneratorState` at `ReadyToStart`,
+   unchanged, so retrying is exactly what a real player would do.
+2. **It's used in exactly one test** — the dedicated full-progression test,
+   where the milestone spec requires the real interaction. Every other test
+   that merely needs _a running generator_ as setup uses
+   `crankGeneratorViaBridge()` (`activateTarget('fg-gen-ctrl-starter')` — the
+   same `devActivate` bridge shortcut `facility.spec.ts` already uses for
+   pickups/doors; for a `'hold'`-kind target it calls `interact()` — i.e.
+   `attemptStart()` — directly, skipping the hold-progress timer without
+   setting any generator/circuit/milestone state by hand). The warm-up wait
+   itself is unavoidable either way and still uses a 60s poll.
+
+### Full power progression test
+
+`tests/e2e/power.spec.ts`'s "full power progression" test walks the entire
+M0.5 chain to `GreyboxComplete` via `teleportTo` + one pickup + one door open
+(the same bridge-assisted-movement pattern every other facility test uses),
+then drives the **entire** generator startup sequence — every control, and
+the 2-second starter hold — through real `[E]` key presses at
+eye-height-aligned teleport vantage points (`fg-tp-gen-*` in
+`facilityTeleportDefinitions.ts`), closes the main breaker via `[E]`,
+energizes the control-room circuit via a real click on the distribution
+panel's own DOM toggle button, and activates the receiver via `[E]` —
+verifying the phase reaches `PowerNetworkOperational` at the end. No
+bridge shortcut ever drives the starter or the panel toggle in this test.
+
+**Four real issues this test caught during development, each root-caused
+individually (via direct measurement — dumping live mesh positions, camera
+positions and interaction-system state side by side) rather than papered
+over with a longer sleep or a higher retry count:**
+
+1. **World geometry — vertical margin**: the battery isolator, e-stop and
+   selector control boxes (`buildGeneratorControls.ts`) were built with
+   `height: 0.3` centered at `y = 1.6`, giving a top edge at `y = 1.75`. The
+   camera's actual settled eye height is `y ≈ 1.77–1.78` (foot height after
+   floor collision + `PlayerConfig.standingEyeHeight`) — a couple of
+   centimetres _above_ that top edge, so a level (pitch 0) ray passed clean
+   over the top of all three boxes and never hit them. Fixed by growing
+   those three boxes to `height: 0.5`. See
+   `../level-design/facility-power-plan.md` for the full geometry writeup,
+   including a second, related clearance bug (equipment-block overlap with
+   the standing capsule) found while chasing bug 4 below.
+2. **Test design — stale focus**: `FocusStability`'s loss-grace period (see
+   `FocusStability.ts`) deliberately keeps the _previous_ focus target alive
+   for a short window after the raycast stops hitting it, to bridge
+   momentary mesh-boundary misses during normal play. The test's `press()`
+   helper originally polled `focusedId` for mere truthiness after each
+   teleport — which the stale, still-truthy previous target satisfied
+   immediately, so `[E]` sometimes fired on the control just left rather
+   than the new one, silently skipping a step. Fixed by polling for the
+   _specific_ expected target id at each vantage point (`focusOn()`).
+3. **Test design — dropped press**: a fixed `page.waitForTimeout(150)` after
+   the keypress is not enough to guarantee the queued interact was actually
+   processed. `InteractionSystem` only consumes `interactQueued` on its own
+   `onBeforeRenderObservable` tick, and under degraded headless frame pacing
+   a single rendered frame can take well over 150ms — a sleep shorter than
+   one frame silently drops the press, and the very next `teleportTo()`
+   moves on before the interact ever fired. Fixed by having `press()` poll a
+   `verify` predicate (the actual expected domain-state change) after the
+   keypress instead of guessing a sleep duration, and retry the press itself
+   — safely, because it only retries when `verify` still reports the
+   pre-press state, never blind, so a toggle control can't get
+   double-flipped by the retry.
+4. **Product characteristic — zero-grace hold eligibility**: unlike
+   focus/prompt display, `InteractionSystem`'s hold-eligibility check
+   requires the raycast to hit the target on the _exact_ current frame, with
+   none of `FocusStability`'s grace tolerance (`holdEligible = ... &&
+eligible !== null`, using the frame-fresh candidate, not the graced
+   `this.focus`). Under degraded headless frame pacing a multi-second hold
+   can hit a single-frame raycast miss purely by chance — confirmed by
+   direct measurement with the player provably stationary (position,
+   `document.hasFocus()`, and pointer lock all static throughout one such
+   stall) — canceling an otherwise-fine hold partway through. This is a
+   real characteristic of a foundational, already-tested mechanic shared by
+   other holds in the game, not something to change for one test, so the
+   fix lives entirely on the test side: `holdStarterUntilCranked()` retries
+   the hold (see above) rather than trusting a single long wait.
+
+### Bridge additions (facility scene, development only)
+
+See `../development/power-debugging.md` for the full list
+(`getPowerSnapshot`, `getGeneratorSnapshot`, `generatorAction`,
+`requestCircuit`, `toggleCircuit`, the distribution-panel open/close/query
+functions, `activateReceiver`, `resetFacility`). All removed on scene
+disposal, same as every other bridge extension.

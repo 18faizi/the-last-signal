@@ -84,3 +84,39 @@ meaningful movement.
 All resources are collected into a `DisposableBag` on the returned
 `SceneHandle`. Disposing the scene removes all observers, overlays, and the
 test bridge extensions. The Babylon scene itself is disposed last.
+
+## Milestone 0.6 additions
+
+`FacilitySceneContext` gained five new fields: `powerNetwork`,
+`generatorController`, `distributionPanel`, `emergencyPower`, and
+`powerQuery` (the `PowerAccessQuery` fed to doors that combine item + power
+requirements — see `../gameplay/powered-access.md`). New modules:
+
+```
+src/scenes/facility-greybox/power/
+  facilityPowerDefinitions.ts   — 2 sources, 7 circuits, 14 loads
+  facilityPowerBindings.ts      — bindEmissiveToCircuit / bindLightToCircuit helpers
+  buildGeneratorControls.ts     — generator hall control panel geometry + targets
+  buildDistributionPanel.ts     — panel geometry + panel target + field receiver
+  buildPoweredIndicators.ts     — one indicator lamp + PointLight per circuit
+src/scenes/facility-greybox/overlay/
+  PowerDebugOverlay.ts          — F10 overlay (mirrors FacilityDebugOverlay)
+```
+
+`buildGeneratorControls.ts` is called from inside `buildGeneratorBuilding.ts`
+(the existing generator building builder); `buildDistributionPanel.ts` and
+`buildPoweredIndicators.ts` are called directly from
+`FacilityGreyboxScene.ts` after the existing builder sequence, since they
+touch multiple already-built areas (control room + zone-spanning indicator
+lamps) rather than extending a single existing room. `buildPoweredIndicators`
+returns its `PoweredStateBinding[]` for the scene to dispose on teardown —
+they're plain `PowerNetwork` subscriptions, not owned by any
+`InteractionTarget`.
+
+Scene creation sequence gained, between steps 5 and 6: register power
+sources/circuits/loads with `PowerNetwork`, run `validatePowerNetworkData()`
+(development only, throws on integrity failure — unlike the softer
+`validateFacilityData()` warning), construct breakers/panel/emergency-power
+controllers, and call `emergencyPower.initializeEmergencyPower()` so the
+emergency circuit is live from the very first frame. `F10` was added
+alongside `F7`–`F9` in the input-wiring step.

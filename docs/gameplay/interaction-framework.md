@@ -107,14 +107,26 @@ gameplay input is restored. A target unregistered while focused is dropped
 by a per-frame registry check. Inspection setup failure tears down the
 half-built session (releasing the input lock) before reporting.
 
-## Future integration (doors, switches, terminals)
+## Doors, switches, and panels (built in M0.4/M0.6)
 
 A door is an `immediate` (or `hold`) target whose `interact()` drives the
-door subsystem; a locked door reports
-`{ status: 'disabled', reason: 'LOCKED' }` until the key system says
-otherwise; a terminal is an `inspect`- or `read`-like mode built the same
-way inspection was: acquire an input lock, own the screen, release on
-close. Nothing in the framework needs to change.
+door subsystem (`DoorController`/`DoorInteractionTarget`, M0.4); a locked
+door reports `{ status: 'disabled', reason: 'LOCKED' }` (or the lock's
+specific reason, e.g. `'TUNNEL CIRCUIT NOT ENERGIZED'`) until the
+`AccessEvaluator` says otherwise — see `powered-access.md` for how a lock's
+`AccessRequirement` tree can now combine item and power conditions. The
+generator's control panel (M0.6) is seven `immediate`/`hold` targets built by
+`GeneratorInteractionTargets.ts` — no framework changes needed, exactly as
+predicted.
+
+A full-screen panel (the distribution panel) needed one small framework
+addition: a `'panel'` `TargetInteractionKind` (`isPanelTarget()` guard,
+alongside `isInspectableTarget()`/`isReadableTarget()`), handled in
+`InteractionSystem.activate()` and a new `'power-panel'` `InteractionMode` —
+otherwise built the same way inspection/reading were: acquire an input
+lock, own the screen, release on close. See
+`../architecture/interaction-state-machine.md` and
+`../development/distribution-panel.md`.
 
 ## Current limitations
 

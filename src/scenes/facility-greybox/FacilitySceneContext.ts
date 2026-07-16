@@ -17,6 +17,11 @@ import type { TriggerVolumeSet } from '../../game/facility/TriggerVolume';
 import type { CheckpointRegistry } from '../../game/facility/Checkpoint';
 import type { TeleportRegistry } from '../../game/facility/TeleportRegistry';
 import type { FacilityRuntimeState } from '../../game/facility/FacilityRuntimeState';
+import type { PowerNetwork } from '../../game/power/PowerNetwork';
+import type { GeneratorController } from '../../game/generator/GeneratorController';
+import type { DistributionPanelController } from '../../game/electrical/DistributionPanelController';
+import type { EmergencyPowerController } from '../../game/electrical/EmergencyPowerController';
+import type { PowerAccessQuery } from '../../game/access/PowerAccessQuery';
 import type { FacilityMaterials } from './FacilityMaterials';
 import type { FacilityGeometryHelper } from './FacilityGeometryHelper';
 
@@ -48,6 +53,14 @@ export interface FacilitySceneContext {
   // Services
   readonly inventory: InventoryService;
   readonly facilityState: FacilityRuntimeState;
+
+  // Power domain (Milestone 0.6)
+  readonly powerNetwork: PowerNetwork;
+  readonly generatorController: GeneratorController;
+  readonly distributionPanel: DistributionPanelController;
+  readonly emergencyPower: EmergencyPowerController;
+  /** Power-aware access query fed to doors that combine item + power requirements. */
+  readonly powerQuery: PowerAccessQuery;
 
   // Shared resources
   readonly materials: FacilityMaterials;

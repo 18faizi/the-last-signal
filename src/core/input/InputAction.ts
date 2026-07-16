@@ -24,6 +24,8 @@ export enum InputAction {
   ToggleTeleport = 'toggle-teleport',
   /** F9: toggle facility zone/trigger debug visualization (facility scene only). */
   ToggleFacilityDebug = 'toggle-facility-debug',
+  /** F10: toggle power-network debug visualization (facility scene only). */
+  TogglePowerDebug = 'toggle-power-debug',
 }
 
 /** Maps KeyboardEvent.code values to actions. */
@@ -50,6 +52,7 @@ export const DEFAULT_BINDINGS: InputBindings = {
   Tab: InputAction.ToggleInventory,
   F8: InputAction.ToggleTeleport,
   F9: InputAction.ToggleFacilityDebug,
+  F10: InputAction.TogglePowerDebug,
 };
 
 /** Human-readable key label for prompts, e.g. 'KeyE' → 'E'. */

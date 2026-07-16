@@ -4,23 +4,32 @@ A browser-based atmospheric first-person mystery game set inside an abandoned
 telecommunications relay station in northern Pakistan. Built with Babylon.js
 and TypeScript.
 
-## Current milestone: 0.5 — Facility Greybox and Progression Skeleton
+## Current milestone: 0.6 — Facility Power Network
 
 Milestones 0.1–0.4 established the engine foundation, first-person controller,
 interaction framework, and the door/lock/key/inventory system. Milestone 0.5
-adds the full greybox layout of the facility (9 zones, 6 doors, 7 pickups),
+added the full greybox layout of the facility (9 zones, 6 doors, 7 pickups),
 a monotonic progression phase state machine, zone trigger detection via AABB
 polling, checkpoint and teleport registries, F8 teleport menu and F9 facility
 debug overlay, static validator for level-design integrity (duplicate IDs,
 softlock detection), and the `facility-greybox` boot scene.
 
+Milestone 0.6 adds the facility's electrical power network: a generator
+startup sequence (nine-state machine, real hold-to-start, warm-up), a
+capacity-limited distribution panel routing power across seven circuits from
+two sources (generator + emergency battery), powered world state (indicator
+lights, a combined inventory+power door, a control-room field receiver as
+the completion trigger), and F10 power debug tooling. See
+`docs/architecture/power-network.md` and `docs/level-design/facility-power-plan.md`.
+
 ### Controls (facility greybox scene)
 
 Click the canvas to capture the mouse (Esc releases). `WASD` move ·
 `Shift` sprint · `C`/`Ctrl` crouch · `Space` jump · `E` interact ·
-`R` respawn to last checkpoint · `F7` respawn to spawn · `F8` teleport
-menu (dev) · `F9` facility debug overlay (dev) · `` ` ``/`F3` engine debug
-overlay (dev) · `F4` player debug (dev) · `F6` interaction-ray debug (dev).
+`HOLD E` on the generator starter · `R` respawn to last checkpoint ·
+`F7` respawn to spawn · `F8` teleport menu (dev) · `F9` facility debug
+overlay (dev) · `F10` power network debug overlay (dev) · `` ` ``/`F3` engine
+debug overlay (dev) · `F4` player debug (dev) · `F6` interaction-ray debug (dev).
 
 ## Requirements
 
@@ -88,7 +97,14 @@ included `vercel.json`. See `docs/production/deployment.md`.
 - `src/game/facility/` — progression system: `ProgressionPhase`,
   `FacilityRuntimeState`, `ZoneRegistry`, `TriggerVolumeSet`,
   `CheckpointRegistry`, `TeleportRegistry`, `FacilityValidator`.
-- `src/ui/` — DOM loading screen and fatal-error screen.
+- `src/game/power/`, `src/game/generator/`, `src/game/electrical/` — the
+  power domain (Milestone 0.6): `PowerNetwork` (sources/circuits/loads,
+  atomic capacity allocation), `GeneratorController` (nine-state startup
+  machine), breakers, the distribution panel controller, emergency-power
+  handoff, and `PoweredStateBinding` — see `docs/architecture/power-network.md`.
+- `src/ui/` — DOM loading screen, fatal-error screen, inventory viewer, and
+  (`src/ui/power/`) the distribution panel dialog and compact power/generator
+  status widgets.
 
 Details in `docs/architecture/`.
 
@@ -103,6 +119,6 @@ Details in `docs/architecture/`.
 
 ## Next milestone boundary
 
-Milestone 0.6 — Narrative Layer. Story text, ambient audio, save/load,
-main menu. The greybox geometry and all progression systems from 0.5 are
-the stable foundation it will build on.
+Milestone 0.7 — not yet started. The power network, generator, and
+distribution panel from 0.6 are the stable foundation the next narrative/
+audio/save-load layer will build on.

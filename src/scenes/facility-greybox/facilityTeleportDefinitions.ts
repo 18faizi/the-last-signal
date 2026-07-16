@@ -72,4 +72,62 @@ export const FACILITY_TELEPORTS: readonly TeleportDefinition[] = [
     position: { x: 0, y: 6.1, z: 22 },
     yaw: Math.PI,
   },
+  // ----- Milestone 0.6: power control vantage points -----------------------
+  // Positioned so a level (pitch 0) look lands directly on each wall-mounted
+  // control — used by tests/e2e/power.spec.ts to drive the real hold
+  // interaction for the starter without a state-setting shortcut.
+  {
+    id: 'fg-tp-gen-status-panel',
+    label: 'Generator Status Panel',
+    position: { x: 43.5, y: 0.1, z: 5.2 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-gen-fuel-valve',
+    label: 'Generator Fuel Valve',
+    position: { x: 45, y: 0.1, z: 5.2 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-gen-battery',
+    label: 'Generator Starter Battery',
+    position: { x: 46, y: 0.1, z: 5.2 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-gen-estop',
+    label: 'Generator Emergency Stop',
+    position: { x: 47, y: 0.1, z: 5.2 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-gen-selector',
+    label: 'Generator Mode Selector',
+    position: { x: 48, y: 0.1, z: 5.2 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-gen-starter',
+    label: 'Generator Starter Control',
+    position: { x: 49, y: 0.1, z: 5.2 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-gen-breaker',
+    label: 'Generator Main Breaker',
+    position: { x: 50, y: 0.1, z: 5.2 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-distribution-panel',
+    label: 'Distribution Panel',
+    position: { x: -8.7, y: 0.1, z: 18 },
+    yaw: -Math.PI / 2,
+  },
+  {
+    id: 'fg-tp-receiver',
+    label: 'Field Receiver',
+    position: { x: -8.7, y: 0.1, z: 22 },
+    yaw: -Math.PI / 2,
+  },
 ];

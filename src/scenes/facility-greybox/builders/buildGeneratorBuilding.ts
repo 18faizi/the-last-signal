@@ -14,6 +14,7 @@ import { createPickup } from '../../../game/pickups/PickupController';
 import { createReadableDocument } from '../../interaction-test/testTargets/documentTargets';
 import { DOOR_DEF_GENERATOR, DOOR_DEF_TUNNEL_MAINTENANCE } from '../facilityDoorDefinitions';
 import { FACILITY_PICKUP_DEFS } from '../facilityItemDefinitions';
+import { buildGeneratorControls } from '../power/buildGeneratorControls';
 
 export function buildGeneratorBuilding(ctx: FacilitySceneContext, scene: Scene): void {
   const { geo, materials } = ctx;
@@ -84,11 +85,22 @@ export function buildGeneratorBuilding(ctx: FacilitySceneContext, scene: Scene):
   });
 
   // ----- Generator units (decorative blocks) ------------------------------
+  // cz/d chosen so the block's near face (z=4.3) stays clear of the player
+  // capsule's reach (colliderRadius 0.35) from the control vantage line at
+  // z=5.2 — the capsule's collision boundary comes no closer than z≈4.85.
+  // The original cz=4,d=2 (near face z=5) overlapped that boundary by 0.15m;
+  // Havok's character controller continuously depenetrated the capsule out
+  // of the block every physics step, producing a slow forward/upward drift
+  // that (over several real seconds, e.g. during the real starter hold —
+  // see tests/e2e/power.spec.ts) eventually walked the camera out of ray
+  // alignment with the wall controls. Confirmed by sampling live player
+  // position during a held interaction: position and velocity followed a
+  // classic damped depenetration curve, not any player/camera-side motion.
   for (let i = 0; i < 2; i++) {
     geo.equipmentSolid(`gen-unit-${i}`, {
       cx: 44 + i * 4,
       cy: 1,
-      cz: 4,
+      cz: 3.3,
       w: 3,
       h: 2,
       d: 2,
@@ -152,6 +164,7 @@ export function buildGeneratorBuilding(ctx: FacilitySceneContext, scene: Scene):
     scene,
     ctx.inventory,
     ctx.itemRegistry,
+    ctx.powerQuery,
   );
   ctx.doorRegistry.register(tunnelDoor);
   const tunnelTarget = new DoorInteractionTarget(tunnelDoor, scene);
@@ -213,6 +226,9 @@ export function buildGeneratorBuilding(ctx: FacilitySceneContext, scene: Scene):
     rotationY: 0,
   });
   ctx.interactionRegistry.register(maintDoc);
+
+  // ----- Generator control panel (Milestone 0.6) --------------------------
+  buildGeneratorControls(ctx, scene);
 
   // ----- Labels ----------------------------------------------------------
   geo.label('GENERATOR BUILDING', new Vector3(47, 3, 0), 3.5);

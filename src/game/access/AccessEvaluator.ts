@@ -15,14 +15,21 @@ import type { AccessRequirement } from './AccessRequirement';
 import type { LockDefinition } from './LockDefinition';
 import type { LockState } from './LockState';
 import type { AccessResult, ConsumptionStep } from './AccessResult';
+import type { PowerAccessQuery } from './PowerAccessQuery';
 
 export class AccessEvaluator {
   private readonly inventory: InventoryService;
   private readonly registry: InventoryRegistry;
+  private readonly powerQuery: PowerAccessQuery | null;
 
-  constructor(inventory: InventoryService, registry: InventoryRegistry) {
+  constructor(
+    inventory: InventoryService,
+    registry: InventoryRegistry,
+    powerQuery: PowerAccessQuery | null = null,
+  ) {
     this.inventory = inventory;
     this.registry = registry;
+    this.powerQuery = powerQuery;
   }
 
   /**
@@ -73,6 +80,20 @@ export class AccessEvaluator {
       case 'none':
         return { status: 'allowed', consumptionPlan: [] };
 
+      case 'power': {
+        // Fail-safe: no power query configured means we cannot verify the
+        // circuit, so access is denied rather than silently granted.
+        const energized = this.powerQuery?.isCircuitEnergized(req.circuitId) ?? false;
+        if (!energized) {
+          return {
+            status: 'denied',
+            missingItems: [],
+            userFacingReason: lock.lockedReason ?? req.poweredReason ?? 'NO POWER',
+          };
+        }
+        return { status: 'allowed', consumptionPlan: [] };
+      }
+
       case 'item': {
         const needed = req.count ?? 1;
         const held = this.inventory.getQuantity(req.itemId);
@@ -119,9 +140,15 @@ export class AccessEvaluator {
       case 'all-of': {
         const plan: ConsumptionStep[] = [];
         const missing: InventoryItemId[] = [];
+        // A denied child (e.g. a power requirement) may contribute zero
+        // missingItems — track denial itself, not just the accumulated item
+        // list, so an AllOf never falls through to 'allowed' just because
+        // none of its denied children happened to name a missing item.
+        let anyDenied = false;
         for (const child of req.children) {
           const result = this.check(child, lock);
           if (result.status === 'denied') {
+            anyDenied = true;
             for (const id of result.missingItems) {
               if (!missing.includes(id)) {
                 missing.push(id);
@@ -131,7 +158,7 @@ export class AccessEvaluator {
             plan.push(...result.consumptionPlan);
           }
         }
-        if (missing.length > 0) {
+        if (anyDenied) {
           return {
             status: 'denied',
             missingItems: missing,

@@ -12,8 +12,14 @@ and look are suspended while **any** token is held (`InputLockSet`,
 - double-release is a no-op;
 - two locks with the same reason are still independent.
 
-Reasons (`inspection` | `document` | `transition`) are labels for debugging
-(shown in the debug overlay), not keys.
+Reasons (`inspection` | `document` | `transition` | `inventory` |
+`power-panel`) are labels for debugging (shown in the debug overlay), not
+keys. `power-panel` (M0.6) is acquired/released by `PowerPanelSession`
+(`src/game/interaction/power/PowerPanelSession.ts`), which mirrors
+`DocumentController` almost exactly: acquire on open, suppress the
+pointer-lock prompt, release pointer lock (the distribution panel dialog
+needs a free cursor to click its toggle buttons), release the lock on
+close.
 
 ## What suspension does
 

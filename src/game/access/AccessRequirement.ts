@@ -12,8 +12,9 @@
  */
 import type { InventoryItemId } from '../inventory/InventoryItemId';
 import type { ConsumptionPolicy } from '../inventory/ItemConsumptionPolicy';
+import type { PowerCircuitId } from '../power/PowerCircuitId';
 
-export type AccessRequirementKind = 'none' | 'item' | 'any-of' | 'all-of';
+export type AccessRequirementKind = 'none' | 'item' | 'power' | 'any-of' | 'all-of';
 
 export interface NoRequirement {
   readonly kind: 'none';
@@ -31,6 +32,19 @@ export interface ItemRequirement {
   readonly consumptionPolicy?: ConsumptionPolicy;
 }
 
+/**
+ * The referenced circuit must be energized. Never consumes anything — power
+ * requirements produce no ConsumptionStep. Evaluated against a
+ * PowerAccessQuery passed to AccessEvaluator; when no query is configured
+ * (e.g. a scene with no power network) a power requirement always denies —
+ * fail-safe, never fail-open.
+ */
+export interface PowerRequirement {
+  readonly kind: 'power';
+  readonly circuitId: PowerCircuitId;
+  readonly poweredReason?: string;
+}
+
 export interface AnyOfRequirement {
   readonly kind: 'any-of';
   readonly children: readonly AccessRequirement[];
@@ -42,7 +56,7 @@ export interface AllOfRequirement {
 }
 
 export type AccessRequirement =
-  NoRequirement | ItemRequirement | AnyOfRequirement | AllOfRequirement;
+  NoRequirement | ItemRequirement | PowerRequirement | AnyOfRequirement | AllOfRequirement;
 
 // ----- helper constructors (no runtime overhead) -------------------------
 
@@ -55,6 +69,13 @@ export function requireItem(
   options?: { count?: number; consumptionPolicy?: ConsumptionPolicy },
 ): ItemRequirement {
   return { kind: 'item', itemId, ...options };
+}
+
+export function requirePower(
+  circuitId: PowerCircuitId,
+  options?: { poweredReason?: string },
+): PowerRequirement {
+  return { kind: 'power', circuitId, ...options };
 }
 
 export function anyOf(...children: AccessRequirement[]): AnyOfRequirement {

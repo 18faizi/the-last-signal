@@ -98,3 +98,16 @@ openedDoorIds, discoveredZoneIds }` snapshot from `FacilityRuntimeState`.
 
 Both bridge keys are installed when the facility scene is created and removed
 when it is disposed. They do not exist when any other scene is active.
+
+## Milestone 0.6 additions
+
+See `power-debugging.md` for the full breakdown. In short: `F10` toggles the
+power-network debug overlay (`PowerDebugOverlay`, mirrors F9's pattern plus
+colour-coded world markers); the F3 overlay's `getDebugFields()` gained
+compact generator/power rows; and the test bridge gained
+`getPowerSnapshot()`, `getGeneratorSnapshot()`, `getGeneratorReadiness()`,
+`generatorAction(name)`, `requestCircuit(...)`, `toggleCircuit(...)`,
+`openDistributionPanel()`/`closeDistributionPanel()`/`isDistributionPanelOpen()`,
+`activateReceiver()`, and `resetFacility()` (the dev full-reset action —
+also clears every M0.5 field, superseding any ad-hoc reset previously done
+by hand). `getFacilityState()` now also returns a `power` field.

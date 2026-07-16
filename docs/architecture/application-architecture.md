@@ -73,8 +73,6 @@ the Milestone 0.4 access-test scene. Only registered scene IDs (see
 `src/core/scenes/SceneId.ts`) are accepted; unrecognised values fall back to
 `facility-greybox`. This is used by the legacy Milestone 0.3/0.4 e2e tests.
 
-## Milestone 0.3 addition: interaction layer
-
 Scenes may now compose the reusable interaction framework
 (`src/game/interaction/` — see `../gameplay/interaction-framework.md`): an
 `InteractionSystem` scene observer drives focus raycasting, prompts,
@@ -87,3 +85,15 @@ scene handles may expose `markerText` (scene-owned development marker) and
 inspection 26 → document reader 28 → debug overlay 30 → loading 35 →
 fatal 40). The single-render-loop rule is unchanged — inspection swaps
 `scene.activeCamera`, never adds a loop.
+
+## Milestone 0.6 addition: the power domain layer
+
+`FacilityGreyboxScene.ts` now also wires a `PowerNetwork`, `GeneratorController`,
+`DistributionPanelController`, and `EmergencyPowerController` at scene setup
+— none of them Babylon-aware. `InteractionTarget` gained a `'panel'` kind and
+`InteractionMode` gained a `'power-panel'` mode (entered through the same
+`transitioning` gate as `inspecting`/`reading`), following the exact pattern
+`InteractionSystem` already used for the M0.4 inventory overlay. See
+`power-network.md`, `generator-state-model.md`, and `power-events.md` for the
+full domain-layer breakdown, and `powered-load-bindings.md` for how world
+geometry observes it without hardcoding power checks.
