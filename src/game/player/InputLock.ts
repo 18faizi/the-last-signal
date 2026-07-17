@@ -7,7 +7,13 @@
  * can never accidentally release another's, and double-release is a no-op.
  */
 export type InputSuspensionReason =
-  'inspection' | 'document' | 'transition' | 'inventory' | 'power-panel' | 'receiver';
+  | 'inspection'
+  | 'document'
+  | 'transition'
+  | 'inventory'
+  | 'power-panel'
+  | 'receiver'
+  | 'antenna-panel';
 
 export interface InputLockToken {
   readonly reason: InputSuspensionReason;

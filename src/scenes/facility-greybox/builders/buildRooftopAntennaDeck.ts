@@ -94,8 +94,14 @@ export function buildRooftopAntennaDeck(ctx: FacilitySceneContext, scene: Scene)
     color: materials.palette.metal.diffuseColor,
   });
 
-  // ----- Antenna control cabinet -----------------------------------------
-  geo.equipmentSolid('roof-antenna-ctrl', { cx: -8, cy: RY + 1, cz: 22, w: 1, h: 2, d: 0.6 });
+  // ----- Antenna control cabinet -------------------------------------------
+  // M0.5's static placeholder here (previously `geo.equipmentSolid('roof-
+  // antenna-ctrl', ...)`) is REPLACED by Milestone 0.8's real interactive
+  // cabinet — see antenna/buildAntennaControls.ts — at the exact same
+  // position, mirroring buildReceiverConsole.ts's identical replacement of
+  // M0.6's provisional receiver placeholder. Keeping both would leave a
+  // non-interactive static collider occupying the same volume as the new
+  // 'antenna'-kind InteractionTarget's mesh, blocking its raycast.
 
   // ----- Tower base geometry -------------------------------------------
   // Lattice tower base legs (four box posts)

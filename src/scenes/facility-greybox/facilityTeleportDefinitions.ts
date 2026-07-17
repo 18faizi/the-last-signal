@@ -130,4 +130,24 @@ export const FACILITY_TELEPORTS: readonly TeleportDefinition[] = [
     position: { x: -8.7, y: 0.1, z: 22 },
     yaw: -Math.PI / 2,
   },
+  // ----- Milestone 0.8: antenna control vantage points ----------------------
+  // Positioned so a level (pitch 0) look lands directly on each rooftop
+  // control — used by tests/e2e/antenna.spec.ts to drive real interactions
+  // without a state-setting shortcut, mirroring the M0.6 generator vantage
+  // points above. Direction convention (see FirstPersonController.ts):
+  // yaw 0 looks toward +Z, so each vantage point stands at the SAME x as its
+  // target, offset slightly toward -Z, facing yaw 0 — exactly like the
+  // generator control row above.
+  {
+    id: 'fg-tp-antenna-cabinet',
+    label: 'Antenna Control Cabinet',
+    position: { x: -8, y: 6.1, z: 21.3 },
+    yaw: 0,
+  },
+  {
+    id: 'fg-tp-waveguide-junction',
+    label: 'Waveguide Junction Box',
+    position: { x: 3, y: 6.1, z: 19.3 },
+    yaw: 0,
+  },
 ];

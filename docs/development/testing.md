@@ -351,3 +351,89 @@ completion events never double-fire — including across a close/reopen
 cycle of an already-decoded receiver, which the decoded-state fast path
 (see `receiver-state-model.md`) is specifically designed to avoid
 re-triggering.
+
+## Milestone 0.8 additions — antenna, waveguide, source analysis
+
+New pure-logic unit suites (`src/tests/unit/`): `antennaEvaluator.test.ts`
+(circular azimuth wraparound including the exact 179°/-179° and
+-180°/180° boundary cases, linear/clamped elevation with below-range
+invalidity, the 180°-periodic polarization model with equivalent-
+orientation boundary cases, wrong-array/missing-power/broken-waveguide/
+partial-alignment/max-quality-cap/determinism/default-not-solved),
+`antennaController.test.ts` (movement start/completion/reversal, emergency
+stop, power loss/restoration incl. no-auto-resume, park, repeated-motion-
+no-drift, state transitions, reset, plus a regression test for the
+Aligned-ratio bug below), `waveguideController.test.ts` (default
+misroute, correct/invalid route, continuity, events, reset),
+`bearingEvaluator.test.ts` (deterministic per-role profile checks —
+External/Reflected/Local categories, confidence/stability scaling with
+alignment quality), `sourceAnalysisController.test.ts` (sample
+acceptance/rejection, duplicate-sample idempotency, insufficient-data
+transient state, full comparison + one-shot resolution, reset),
+`antennaProgressionPhase.test.ts` (valid/invalid transitions, duplicate-
+sample-event guard, reveal one-shot, dev reset), `antennaValidation.test.ts`
+(duplicate ids, invalid ranges, missing circuit/waveguide/diagnostic-array
+references, default-not-accidentally-aligned), `analysisQualityEvaluator.test.ts`
+(the transmission-decoded hard gate, multiplicative composition, and the
+no-double-gating guarantee between `alignmentQuality` and the composition's
+own live power/waveguide inputs).
+
+**Two real bugs caught while writing/running these tests** (both now
+regression-tested):
+
+1. `AntennaController.recomputeMetrics()`'s Aligned/AlignedCandidate
+   reconciliation originally compared `overallQuality` against a FIXED
+   absolute threshold (0.85) — since North Dish's `maxQuality` is
+   deliberately capped at 0.6, it could never reach `Aligned` even at
+   perfect alignment. Fixed by making the thresholds RATIOS of each
+   array's own `maxQuality`. See `docs/architecture/antenna-state-model.md`.
+2. The same method's reconciliation guard originally skipped itself
+   whenever the array's CURRENT control-state label was already
+   `'Moving'` — meaning nothing ever moved a settled array OUT of
+   `'Moving'` after arrival, since the label itself blocked its own
+   re-evaluation. Fixed by deriving the guard from whether motion is
+   ACTUALLY mid-transit right now (checking the mechanical target fields
+   directly), not from the stale label. Caught by the e2e suite, not the
+   unit suite — the unit test's own assertion happened to tick past the
+   stuck window before checking, masking the bug; the e2e test's longer
+   real-time polling exposed it.
+
+### `tests/e2e/antenna.spec.ts`
+
+Mirrors `signal.spec.ts`'s structure and bridge-shortcut discipline
+exactly. The shared-session `describe.serial` block follows the spec's
+REVISED sequence precisely: generator + control-room circuit online,
+decode `first_anomalous_transmission` via real receiver tuning, confirm
+decoded BEFORE the rooftop circuit is ever toggled, THEN energize the
+rooftop circuit — opens the antenna panel and corrects the waveguide
+junction via real `[E]` presses (using the same `focusOn()`/`press()`
+retry-on-teleport-miss helpers as `power.spec.ts`, since the very first
+raycast after a teleport can occasionally miss under headless SwiftShader
+picking), aligns all three arrays via real bridge axis-setters (still not
+a quality shortcut — they call the identical `AntennaController` methods a
+real keyboard interaction would), collects samples, runs the comparison,
+verifies the reveal, verifies the transmission is STILL decoded, verifies
+the samples survive a real rooftop power cycle, and verifies no duplicate
+samples/events anywhere.
+
+Two real vantage-point/sequencing bugs were caught and fixed while writing
+this test (both now permanent fixtures of the passing suite, not workarounds
+papered over with longer timeouts alone):
+
+1. The antenna-cabinet and waveguide-junction dev teleport vantage points
+   initially used the wrong yaw convention (`FirstPersonController`'s
+   `yaw=0` looks toward `+Z`, not `+X` as an earlier comment implied) and
+   the junction box mesh was mounted too low for a standing player's eye
+   height — fixed by correcting both the yaw math and the junction mesh's
+   Y position (see `buildWaveguideNetwork.ts`'s comment).
+2. `buildRooftopAntennaDeck.ts`'s M0.5 placeholder cabinet geometry
+   (`geo.equipmentSolid('roof-antenna-ctrl', ...)`) occupied the exact
+   same position/size as the new interactive cabinet mesh, and its
+   non-interactive static collider blocked the raycast from ever reaching
+   the real target — fixed by removing the placeholder, mirroring
+   `buildReceiverConsole.ts`'s identical M0.6→M0.7 precedent.
+
+Repetition/lifecycle counts (panel open/close ×10, array selection +
+movement ×20, dev reset ×3, F2 toggle ×20) are scaled down from the
+spec's suggested 30/100/5/20 given real generator-startup setup cost per
+session — same documented precedent as M0.7's dev-reset ×3.

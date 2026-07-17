@@ -13,17 +13,22 @@ and look are suspended while **any** token is held (`InputLockSet`,
 - two locks with the same reason are still independent.
 
 Reasons (`inspection` | `document` | `transition` | `inventory` |
-`power-panel` | `receiver`) are labels for debugging (shown in the debug
-overlay), not keys. `power-panel` (M0.6) is acquired/released by
-`PowerPanelSession` (`src/game/interaction/power/PowerPanelSession.ts`),
-which mirrors `DocumentController` almost exactly: acquire on open,
-suppress the pointer-lock prompt, release pointer lock (the distribution
-panel dialog needs a free cursor to click its toggle buttons), release the
-lock on close. `receiver` (M0.7) is acquired/released by
-`ReceiverPanelSession` (`src/game/interaction/receiver/ReceiverPanelSession.ts`),
-which mirrors `PowerPanelSession` exactly — including the same one-
-directional close flow (the session's `close()` calls into
-`ReceiverPanelView.close()`, never the reverse).
+`power-panel` | `receiver` | `antenna-panel`) are labels for debugging
+(shown in the debug overlay), not keys. `power-panel` (M0.6) is
+acquired/released by `PowerPanelSession`
+(`src/game/interaction/power/PowerPanelSession.ts`), which mirrors
+`DocumentController` almost exactly: acquire on open, suppress the
+pointer-lock prompt, release pointer lock (the distribution panel dialog
+needs a free cursor to click its toggle buttons), release the lock on
+close. `receiver` (M0.7) is acquired/released by `ReceiverPanelSession`
+(`src/game/interaction/receiver/ReceiverPanelSession.ts`), which mirrors
+`PowerPanelSession` exactly — including the same one-directional close
+flow (the session's `close()` calls into `ReceiverPanelView.close()`,
+never the reverse). `antenna-panel` (M0.8) is acquired/released by
+`AntennaPanelSession`
+(`src/game/interaction/antenna/AntennaPanelSession.ts`), which mirrors
+`ReceiverPanelSession` exactly — same acquire-on-open/release-on-close
+shape, same one-directional close flow.
 
 ## What suspension does
 
@@ -70,3 +75,10 @@ is held for the panel's entire lifetime, `movementActive` is false and
 could ever call `respawn()` — the two still never fire on the same press.
 See `docs/development/receiver-ui.md`'s "Input handling" section for the
 full key list.
+
+The antenna panel (M0.8) also reserves `R` (park the selected array) and
+`Space` (emergency stop) while open, via the same scoped
+`document.addEventListener('keydown', ...)` technique — never through
+`InputAction`/`InputManager` — so it can never collide with dev-respawn or
+jump even though it reuses the same physical keys. See
+`docs/development/antenna-panel.md`.

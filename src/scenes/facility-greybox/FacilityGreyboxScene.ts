@@ -108,6 +108,27 @@ import { FACILITY_SIGNALS } from './signal/facilitySignalDefinitions';
 import { buildReceiverConsole } from './signal/buildReceiverConsole';
 import { bindFacilityReceiver } from './signal/facilityReceiverBindings';
 import type { SignalId } from '../../game/signal/SignalId';
+import { AntennaController } from '../../game/antenna/AntennaController';
+import { AntennaRuntimeState } from '../../game/antenna/AntennaRuntimeState';
+import { validateAntennaDefinitions } from '../../game/antenna/AntennaValidation';
+import { WaveguideController } from '../../game/waveguide/WaveguideController';
+import { validateWaveguideDefinitions } from '../../game/waveguide/WaveguideValidation';
+import { SourceAnalysisController } from '../../game/source-analysis/SourceAnalysisController';
+import { AntennaPanelSession } from '../../game/interaction/antenna/AntennaPanelSession';
+import { AntennaPanelView } from '../../ui/antenna/AntennaPanelView';
+import { AntennaDebugOverlay } from './overlay/AntennaDebugOverlay';
+import { formatAntennaCompactFields } from '../../game/antenna/AntennaDebugView';
+import {
+  FACILITY_ANTENNA_ARRAYS,
+  FACILITY_WAVEGUIDES,
+  ANTENNA_NORTH_DISH_ID,
+  ANTENNA_EAST_RELAY_ID,
+  ANTENNA_TOWER_DIAGNOSTIC_ID,
+} from './antenna/facilityAntennaDefinitions';
+import { buildDishAssemblies, type DishAssemblyHandle } from './antenna/buildDishAssemblies';
+import { buildAntennaControls } from './antenna/buildAntennaControls';
+import { buildWaveguideNetwork } from './antenna/buildWaveguideNetwork';
+import { bindFacilityAntenna } from './antenna/facilityAntennaBindings';
 
 const SPAWN_POSITION = new Vector3(-58, 0.1, 0);
 const SPAWN_YAW = 0; // facing east (+X)
@@ -172,6 +193,22 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     }
     const receiverRuntimeState = new ReceiverRuntimeState();
 
+    // ----- Antenna alignment / waveguide / source-analysis domain (Milestone 0.8) ---
+    const antennaController = new AntennaController();
+    for (const array of FACILITY_ANTENNA_ARRAYS) {
+      antennaController.registerArray(array);
+    }
+    const waveguideController = new WaveguideController();
+    for (const waveguide of FACILITY_WAVEGUIDES) {
+      waveguideController.registerPath(waveguide);
+    }
+    const sourceAnalysisController = new SourceAnalysisController([
+      ANTENNA_NORTH_DISH_ID,
+      ANTENNA_EAST_RELAY_ID,
+      ANTENNA_TOWER_DIAGNOSTIC_ID,
+    ]);
+    const antennaRuntimeState = new AntennaRuntimeState();
+
     // ----- Register static definitions -------------------------------------
     for (const itemDef of FACILITY_ITEM_DEFS) {
       itemRegistry.register(itemDef);
@@ -212,6 +249,17 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       });
       if (signalProblems.length > 0) {
         throw new Error(`[SignalValidator] ${signalProblems.join('; ')}`);
+      }
+      const waveguideProblems = validateWaveguideDefinitions(FACILITY_WAVEGUIDES);
+      if (waveguideProblems.length > 0) {
+        throw new Error(`[WaveguideValidator] ${waveguideProblems.join('; ')}`);
+      }
+      const antennaProblems = validateAntennaDefinitions(FACILITY_ANTENNA_ARRAYS, {
+        powerCircuitIds: FACILITY_POWER_CIRCUITS.map((c) => c.id),
+        waveguidePathIds: FACILITY_WAVEGUIDES.map((w) => w.id),
+      });
+      if (antennaProblems.length > 0) {
+        throw new Error(`[AntennaValidator] ${antennaProblems.join('; ')}`);
       }
     }
 
@@ -272,6 +320,10 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       powerQuery,
       receiverController,
       receiverRuntimeState,
+      antennaController,
+      waveguideController,
+      sourceAnalysisController,
+      antennaRuntimeState,
       materials,
       geo,
       devConfig: { isDevelopment: context.environment.isDevelopment },
@@ -314,8 +366,23 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     buildRooftopAntennaDeck(ctx, scene);
     buildDistributionPanel(ctx, scene);
     buildReceiverConsole(ctx, scene);
+    buildAntennaControls(ctx, scene);
+    buildWaveguideNetwork(ctx, scene);
+    const dishAssemblyPositions = new Map<string, Vector3>([
+      [ANTENNA_NORTH_DISH_ID, new Vector3(-6, 6, 24)],
+      [ANTENNA_EAST_RELAY_ID, new Vector3(6, 6, 24)],
+      [ANTENNA_TOWER_DIAGNOSTIC_ID, new Vector3(0, 6, 20)],
+    ]);
+    const dishAssemblies: DishAssemblyHandle = buildDishAssemblies(
+      ctx,
+      scene,
+      antennaController,
+      FACILITY_ANTENNA_ARRAYS,
+      dishAssemblyPositions,
+    );
     const powerIndicatorBindings = buildPoweredIndicators(ctx, scene);
     const receiverBindings = bindFacilityReceiver(ctx);
+    const antennaBindings = bindFacilityAntenna(ctx);
 
     context.onPhysicsReady();
 
@@ -368,6 +435,25 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       controller,
       context.canvas,
     );
+    const antennaPanelView = new AntennaPanelView(
+      context.overlayParent,
+      antennaController,
+      waveguideController,
+      sourceAnalysisController,
+      (id) => FACILITY_ANTENNA_ARRAYS.find((a) => a.id === id),
+      () => receiverController.getSnapshot().metrics,
+      () => antennaController.isPowered,
+      () =>
+        FACILITY_SIGNALS.filter((s) => s.requiredForProgression).every((s) =>
+          receiverController.isDecoded(s.id),
+        ),
+    );
+    const antennaPanelSession = new AntennaPanelSession(
+      antennaController,
+      antennaPanelView,
+      controller,
+      context.canvas,
+    );
 
     // Inventory events → pickup notifications.
     const unsubInventory = inventory.subscribe((event) => {
@@ -409,6 +495,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       inventoryViewer,
       powerPanel: powerPanelSession,
       receiverPanel: receiverPanelSession,
+      antennaPanel: antennaPanelSession,
     });
 
     // ----- Dev overlays (F7, F8, F9) ---------------------------------------
@@ -476,6 +563,24 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       removeSignalDebugListener = context.input.onAction((action) => {
         if (action === InputAction.ToggleSignalDebug) {
           signalDebugOverlay?.toggle();
+        }
+      });
+    }
+
+    // F2 antenna/bearing debug overlay (dev only — not F12, which conflicts with browser devtools)
+    let antennaDebugOverlay: AntennaDebugOverlay | null = null;
+    let removeAntennaDebugListener: (() => void) | null = null;
+    if (context.environment.isDevelopment) {
+      antennaDebugOverlay = new AntennaDebugOverlay(
+        context.overlayParent,
+        antennaController,
+        waveguideController,
+        sourceAnalysisController,
+        (id) => FACILITY_ANTENNA_ARRAYS.find((a) => a.id === id),
+      );
+      removeAntennaDebugListener = context.input.onAction((action) => {
+        if (action === InputAction.ToggleAntennaDebug) {
+          antennaDebugOverlay?.toggle();
         }
       });
     }
@@ -673,6 +778,66 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           return documentRegistry.get(def.transcriptDocumentId) ?? null;
         };
 
+        // ----- Milestone 0.8: antenna/waveguide/source-analysis test surface -
+        b['getAntennaSnapshot'] = () => antennaController.getSnapshot();
+        b['getAntennaRuntimeSnapshot'] = () => antennaRuntimeState.getSnapshot();
+        b['getWaveguideSnapshot'] = (pathId: string) => waveguideController.getSnapshot(pathId);
+        b['getSourceAnalysisSnapshot'] = () => sourceAnalysisController.getSnapshot();
+        b['openAntennaPanel'] = () => interaction.devActivate('fg-antenna-cabinet');
+        b['closeAntennaPanel'] = () => {
+          antennaPanelSession.close();
+        };
+        b['isAntennaPanelOpen'] = () => antennaPanelView.isOpen;
+        b['antennaAction'] = (action: string, value?: number) => {
+          switch (action) {
+            case 'selectArray':
+              return value !== undefined
+                ? antennaController.selectArray(
+                    FACILITY_ANTENNA_ARRAYS[value]?.id ?? ANTENNA_NORTH_DISH_ID,
+                  )
+                : false;
+            case 'setAzimuth':
+              return value !== undefined ? antennaController.setAzimuth(value) : false;
+            case 'setElevation':
+              return value !== undefined ? antennaController.setElevation(value) : false;
+            case 'setPolarization':
+              return value !== undefined ? antennaController.setPolarization(value) : false;
+            case 'park':
+              return antennaController.park();
+            case 'emergencyStop':
+              antennaController.emergencyStop();
+              return true;
+            default:
+              return false;
+          }
+        };
+        b['selectAntennaArray'] = (arrayId: string) =>
+          antennaController.selectArray(
+            FACILITY_ANTENNA_ARRAYS.find((a) => a.id === arrayId)?.id ?? ANTENNA_NORTH_DISH_ID,
+          );
+        b['cycleWaveguidePort'] = (pathId: string) => waveguideController.cyclePort(pathId);
+        b['collectSourceSample'] = () => {
+          const id = antennaController.selectedArray;
+          if (id === null) return null;
+          const def = FACILITY_ANTENNA_ARRAYS.find((a) => a.id === id);
+          const mech = antennaController.getMechanicalState(id);
+          const metrics = antennaController.getMetrics(id);
+          if (def === undefined || mech === undefined || metrics === null) return null;
+          const wg = waveguideController.getSnapshot(def.waveguidePathId);
+          return sourceAnalysisController.collectSample({
+            arrayId: id,
+            role: def.role,
+            azimuthDeg: mech.currentAzimuthDeg,
+            elevationDeg: mech.currentElevationDeg,
+            polarizationDeg: mech.currentPolarizationDeg,
+            alignmentQuality: metrics.alignmentQuality,
+            receiverQuality: receiverController.getSnapshot().metrics?.overallQuality ?? 0,
+            waveguideState: wg?.state ?? 'Disconnected',
+            powered: antennaController.isPowered,
+          });
+        };
+        b['runSourceAnalysisComparison'] = () => sourceAnalysisController.runComparison();
+
         b['resetFacility'] = () => {
           facilityState.reset();
           powerNetwork.reset();
@@ -688,6 +853,17 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           receiverPanelSession.close();
           receiverController.reset();
           receiverRuntimeState.reset();
+          antennaPanelSession.close();
+          antennaController.reset();
+          waveguideController.reset();
+          sourceAnalysisController.reset();
+          antennaRuntimeState.reset();
+          for (const array of FACILITY_ANTENNA_ARRAYS) {
+            antennaController.setWaveguideQuality(
+              array.id,
+              waveguideController.getSnapshot(array.waveguidePathId)?.continuity ?? 0,
+            );
+          }
           emergencyPower.initializeEmergencyPower();
           controller.teleportTo(SPAWN_POSITION, SPAWN_YAW);
         };
@@ -703,6 +879,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       facilityDebugOverlay?.tick();
       powerDebugOverlay?.tick();
       signalDebugOverlay?.tick();
+      antennaDebugOverlay?.tick();
 
       // Read motor's foot position without allocating.
       const motorState = (
@@ -762,7 +939,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
 
     return {
       scene,
-      markerText: 'Milestone 0.7 — Signal Receiver',
+      markerText: 'Milestone 0.8 — Antenna Alignment',
       getDebugFields: () => {
         const snap = facilityState.getSnapshot();
         const genSnap = generatorController.snapshot;
@@ -807,6 +984,12 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           ['Power milestone', snap.power.powerNetworkOperational ? 'OPERATIONAL' : 'pending'],
           ...formatReceiverCompactFields(receiverController.getSnapshot()),
           ['Signal phase', receiverRuntimeState.signalPhase],
+          ...formatAntennaCompactFields(
+            antennaController.getSnapshot(),
+            sourceAnalysisController.getSnapshot(),
+          ),
+          ['Antenna phase', antennaRuntimeState.antennaPhase],
+          ['Antenna reveal', antennaRuntimeState.isRevealComplete ? 'COMPLETE' : 'pending'],
         ];
       },
       dispose(): void {
@@ -835,6 +1018,18 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
             delete b['receiverAction'];
             delete b['getDecodedTranscript'];
             delete b['getSignalEventCounters'];
+            delete b['getAntennaSnapshot'];
+            delete b['getAntennaRuntimeSnapshot'];
+            delete b['getWaveguideSnapshot'];
+            delete b['getSourceAnalysisSnapshot'];
+            delete b['openAntennaPanel'];
+            delete b['closeAntennaPanel'];
+            delete b['isAntennaPanelOpen'];
+            delete b['antennaAction'];
+            delete b['selectAntennaArray'];
+            delete b['cycleWaveguidePort'];
+            delete b['collectSourceSample'];
+            delete b['runSourceAnalysisComparison'];
             delete b['resetFacility'];
           }
         }
@@ -847,6 +1042,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         removeFacilityDebugListener?.();
         removePowerDebugListener?.();
         removeSignalDebugListener?.();
+        removeAntennaDebugListener?.();
 
         if (zoneObserver !== null) {
           scene.onBeforeRenderObservable.remove(zoneObserver);
@@ -857,6 +1053,8 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         unsubPowerEvents();
         unsubSignalCounters();
         receiverBindings.dispose();
+        antennaBindings.dispose();
+        dishAssemblies.dispose();
         for (const binding of powerIndicatorBindings) {
           binding.dispose();
         }
@@ -864,11 +1062,14 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         facilityDebugOverlay?.dispose();
         powerDebugOverlay?.dispose();
         signalDebugOverlay?.dispose();
+        antennaDebugOverlay?.dispose();
         teleportMenu?.dispose();
         powerPanelSession.dispose();
         receiverPanelSession.dispose();
+        antennaPanelSession.dispose();
         distributionPanelView.dispose();
         receiverPanelView.dispose();
+        antennaPanelView.dispose();
         powerStatusView.dispose();
         generatorStatusView.dispose();
         interaction.dispose();
@@ -895,6 +1096,9 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         generatorController.dispose();
         powerNetwork.dispose();
         receiverController.dispose();
+        antennaController.dispose();
+        waveguideController.dispose();
+        sourceAnalysisController.dispose();
 
         geo.dispose();
         materials.dispose();

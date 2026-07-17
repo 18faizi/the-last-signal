@@ -24,6 +24,10 @@ import type { EmergencyPowerController } from '../../game/electrical/EmergencyPo
 import type { PowerAccessQuery } from '../../game/access/PowerAccessQuery';
 import type { ReceiverController } from '../../game/receiver/ReceiverController';
 import type { ReceiverRuntimeState } from '../../game/receiver/ReceiverRuntimeState';
+import type { AntennaController } from '../../game/antenna/AntennaController';
+import type { AntennaRuntimeState } from '../../game/antenna/AntennaRuntimeState';
+import type { WaveguideController } from '../../game/waveguide/WaveguideController';
+import type { SourceAnalysisController } from '../../game/source-analysis/SourceAnalysisController';
 import type { FacilityMaterials } from './FacilityMaterials';
 import type { FacilityGeometryHelper } from './FacilityGeometryHelper';
 
@@ -67,6 +71,12 @@ export interface FacilitySceneContext {
   // Signal receiver domain (Milestone 0.7)
   readonly receiverController: ReceiverController;
   readonly receiverRuntimeState: ReceiverRuntimeState;
+
+  // Antenna alignment / waveguide / source-analysis domain (Milestone 0.8)
+  readonly antennaController: AntennaController;
+  readonly waveguideController: WaveguideController;
+  readonly sourceAnalysisController: SourceAnalysisController;
+  readonly antennaRuntimeState: AntennaRuntimeState;
 
   // Shared resources
   readonly materials: FacilityMaterials;

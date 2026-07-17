@@ -4,7 +4,7 @@ A browser-based atmospheric first-person mystery game set inside an abandoned
 telecommunications relay station in northern Pakistan. Built with Babylon.js
 and TypeScript.
 
-## Current milestone: 0.7 — Signal Receiver
+## Current milestone: 0.8 — Antenna Alignment
 
 Milestones 0.1–0.4 established the engine foundation, first-person controller,
 interaction framework, and the door/lock/key/inventory system. Milestone 0.5
@@ -30,6 +30,18 @@ spectrum/waveform visualizations, a decoded-transcript reader, and F11
 signal debug tooling. See `docs/gameplay/signal-receiver.md` and
 `docs/architecture/signal-domain.md`.
 
+Milestone 0.8 adds rooftop antenna alignment, waveguide routing, and the
+source-bearing-analysis reveal that the anomalous transmission has no
+valid external bearing: three pure-TypeScript domains
+(`src/game/antenna/`, `src/game/waveguide/`, `src/game/source-analysis/`),
+a real mechanical antenna panel (array selection, frame-rate-independent
+azimuth/elevation/polarization movement, a per-array quality ceiling), a
+waveguide junction-box routing puzzle, deterministic (non-randomized)
+per-array bearing profiles feeding a cross-array comparison, a dedicated
+`AntennaProgressionPhase`/`AntennaRuntimeState`, and F2 antenna debug
+tooling. See `docs/gameplay/antenna-alignment.md` and
+`docs/architecture/antenna-domain.md`.
+
 ### Controls (facility greybox scene)
 
 Click the canvas to capture the mouse (Esc releases). `WASD` move ·
@@ -38,12 +50,17 @@ Click the canvas to capture the mouse (Esc releases). `WASD` move ·
 tuning controls while the receiver panel is open) · `F7` respawn to spawn ·
 `F8` teleport menu (dev) · `F9` facility debug overlay (dev) · `F10` power
 network debug overlay (dev) · `F11` signal/receiver debug overlay (dev) ·
-`` ` ``/`F3` engine debug overlay (dev) · `F4` player debug (dev) · `F6`
-interaction-ray debug (dev). While the receiver panel is open: `Up/Down`
-(or `W/S`) select a control row, `Left/Right` (or `A/D`, hold `Shift` for
-fine adjustment) adjust it, mouse wheel adjusts the selected row,
-`Enter/Space` toggles scan (or opens the transcript once decoded), `Escape`
-closes the panel (or just the transcript, if open).
+`F2` antenna/bearing debug overlay (dev) · `` ` ``/`F3` engine debug
+overlay (dev) · `F4` player debug (dev) · `F6` interaction-ray debug (dev).
+While the receiver panel is open: `Up/Down` (or `W/S`) select a control
+row, `Left/Right` (or `A/D`, hold `Shift` for fine adjustment) adjust it,
+mouse wheel adjusts the selected row, `Enter/Space` toggles scan (or opens
+the transcript once decoded), `Escape` closes the panel (or just the
+transcript, if open). While the antenna panel is open: `W/S` select a row
+(array/azimuth/elevation/polarization), `A/D` (`Shift` for fine) adjust
+it, `Enter` collects a source-analysis sample (or runs the comparison once
+all 3 are collected), `R` parks the selected array, `Space` emergency
+stops it, `Escape` closes the panel.
 
 ## Requirements
 
@@ -122,10 +139,23 @@ included `vercel.json`. See `docs/production/deployment.md`.
   accumulators), `ReceiverController` (device state machine, scan sweep),
   and a dedicated `SignalProgressionPhase`/`ReceiverRuntimeState` — see
   `docs/architecture/signal-domain.md`.
+- `src/game/antenna/`, `src/game/waveguide/`, `src/game/source-analysis/`
+  — the antenna alignment / waveguide routing / bearing analysis domains
+  (Milestone 0.8): `AntennaEvaluator` (pure quality math — circular
+  azimuth, linear elevation, 180°-periodic polarization),
+  `AntennaController` (per-array mechanical + control state, frame-rate-
+  independent movement), `WaveguideController` (route/continuity),
+  `BearingEvaluator`/`SourceAnalysisController` (deterministic, authored
+  per-array bearing profiles + cross-array comparison), a composition
+  evaluator combining M0.7's receiver quality with M0.8's antenna/
+  waveguide/power quality, and a dedicated `AntennaProgressionPhase`/
+  `AntennaRuntimeState` — see `docs/architecture/antenna-domain.md`.
 - `src/ui/` — DOM loading screen, fatal-error screen, inventory viewer,
   (`src/ui/power/`) the distribution panel dialog and compact power/generator
-  status widgets, and (`src/ui/signal/`) the receiver panel, canvas
-  spectrum/waveform visualizations, and transcript reader.
+  status widgets, (`src/ui/signal/`) the receiver panel, canvas
+  spectrum/waveform visualizations, and transcript reader, and
+  (`src/ui/antenna/`) the antenna control panel, alignment meters,
+  waveguide status, bearing display, and source-analysis view.
 
 Details in `docs/architecture/`.
 
@@ -140,8 +170,9 @@ Details in `docs/architecture/`.
 
 ## Next milestone boundary
 
-Milestone 0.8 — not yet started. The signal receiver, frequency-tuning
-puzzle, and decoded-transcript flow from 0.7 (deliberately scoped to one
-required transmission, no rooftop antenna alignment, no real DSP/audio, no
-save persistence) are the stable foundation the next narrative content
-pass will build on.
+Milestone 0.9 — not yet started. The antenna alignment, waveguide
+routing, and source-bearing-analysis reveal from 0.8 (deliberately scoped
+to the "no valid external bearing / local loop" classification only — no
+threat AI, no endings, no final story content, no final audio, no save
+persistence) are the stable foundation the next content pass will build
+on.

@@ -28,6 +28,11 @@ export enum InputAction {
   TogglePowerDebug = 'toggle-power-debug',
   /** F11: toggle the signal/receiver debug overlay (facility scene only). */
   ToggleSignalDebug = 'toggle-signal-debug',
+  /**
+   * F2: toggle the antenna/bearing debug overlay (facility scene only).
+   * Deliberately NOT F12 — F12 conflicts with browser devtools.
+   */
+  ToggleAntennaDebug = 'toggle-antenna-debug',
 }
 
 /** Maps KeyboardEvent.code values to actions. */
@@ -56,6 +61,7 @@ export const DEFAULT_BINDINGS: InputBindings = {
   F9: InputAction.ToggleFacilityDebug,
   F10: InputAction.TogglePowerDebug,
   F11: InputAction.ToggleSignalDebug,
+  F2: InputAction.ToggleAntennaDebug,
 };
 
 /** Human-readable key label for prompts, e.g. 'KeyE' → 'E'. */

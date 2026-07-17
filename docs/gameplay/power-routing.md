@@ -44,3 +44,12 @@ toggled through the panel to force it onto the generator explicitly.
 Energizing the **Control Room** circuit also powers the signal receiver
 console (same circuit, same panel row) — see
 `docs/gameplay/signal-receiver.md` for what that unlocks.
+
+## Rooftop/Antenna circuit → antenna cabinet (Milestone 0.8)
+
+Energizing the **Rooftop/Antenna** circuit — the same circuit that already
+powered the deck lights and beacon since M0.6 — now also powers the
+rooftop antenna control cabinet. Losing this circuit mid-alignment freezes
+every array exactly where it is (no snapping back, no lost samples) and
+requires an explicit new movement command once power returns — see
+`docs/gameplay/antenna-alignment.md`.

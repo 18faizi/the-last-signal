@@ -112,3 +112,26 @@ polls `PowerNetwork` itself. See `signal-domain.md`,
 `signal-runtime-state.md`, and `signal-validation.md` for the full
 domain-layer breakdown, and `docs/development/receiver-ui.md` for how the
 DOM/canvas UI layer observes it.
+
+## Milestone 0.8 addition: the antenna/waveguide/source-analysis domain layer
+
+`FacilityGreyboxScene.ts` now also wires an `AntennaController`,
+`WaveguideController`, `SourceAnalysisController`, and `AntennaRuntimeState`
+at scene setup, all Babylon-free — mirrors the M0.6/M0.7 domain-wiring
+pattern exactly. `InteractionTarget` gained an `'antenna'` kind and
+`InteractionMode` gained an `'antenna-panel'` mode, following the exact
+`'panel'`/`'power-panel'` and `'receiver'`/`'receiver'` precedent. The
+waveguide junction box deliberately does NOT get its own mode — it reuses
+the existing `'immediate'` kind (see `waveguide-domain.md`'s "design
+choice" note). `PowerNetwork` gates the antenna cabinet via the same
+`PoweredStateBinding` mechanism; `AntennaController` never polls
+`PowerNetwork` or `WaveguideController` directly — both power and
+waveguide-continuity inputs arrive via event-driven pushes from
+`facilityAntennaBindings.ts`. Three progression enums now coexist (facility
+`ProgressionPhase`, `SignalProgressionPhase`, `AntennaProgressionPhase`),
+integrated only via explicit prerequisite checks and typed event
+subscriptions — never a merged enum. See `antenna-domain.md`,
+`antenna-state-model.md`, `antenna-events.md`, `waveguide-domain.md`,
+`bearing-analysis.md`, `antenna-runtime-state.md`, and
+`antenna-validation.md` for the full domain-layer breakdown, and
+`docs/development/antenna-panel.md` for how the DOM UI layer observes it.

@@ -132,3 +132,25 @@ signal-progression phase. `resetFacility()` now also resets
 `cancelScan`, `resetControls`), `getDecodedTranscript(signalId)`, and
 `getSignalEventCounters()` (cumulative lock/decode/activity event counts,
 used by the repetition e2e suite to prove no event double-fires).
+
+## Milestone 0.8 additions
+
+See `antenna-debugging.md` for the full breakdown. In short: `F2` toggles
+a new antenna/bearing debug overlay (`AntennaDebugOverlay`, bottom-left,
+mirrors F11's pattern) showing per-array control state, current/target
+az-el-pol, quality breakdown, waveguide state, and source-analysis
+samples/classification — dev-only, never constructed in production. F2
+was chosen specifically because F12 conflicts with browser devtools. The
+F3 overlay's `getDebugFields()` gained a compact antenna summary (powered,
+selected array, state, alignment quality, sample count, source-analysis
+state/classification) plus the antenna progression phase and reveal
+completion. `resetFacility()` now also resets `AntennaController`,
+`WaveguideController`, `SourceAnalysisController`, and
+`AntennaRuntimeState` to their power-off/parked/`Unavailable` defaults.
+The test bridge gained `getAntennaSnapshot()`, `getAntennaRuntimeSnapshot()`,
+`getWaveguideSnapshot(pathId)`, `getSourceAnalysisSnapshot()`,
+`openAntennaPanel()`/`closeAntennaPanel()`/`isAntennaPanelOpen()`,
+`antennaAction(name, value?)` (`selectArray`/`setAzimuth`/`setElevation`/
+`setPolarization`/`park`/`emergencyStop`), `selectAntennaArray(arrayId)`,
+`cycleWaveguidePort(pathId)`, `collectSourceSample()`, and
+`runSourceAnalysisComparison()`.

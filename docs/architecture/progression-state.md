@@ -86,3 +86,18 @@ rather than folded into it. See `docs/architecture/signal-runtime-state.md`
 for the full reasoning and `docs/level-design/power-progression.md` for how
 the existing `ReceiverActivated`/`PowerNetworkOperational` phases were
 preserved (not removed) with an updated trigger.
+
+## Milestone 0.8: a THIRD sibling model, not a merge with M0.7's
+
+Milestone 0.8's antenna/waveguide/bearing puzzle follows the exact same
+precedent again, rather than extending `SignalProgressionPhase` or
+`FacilityRuntimeState`/`ProgressionPhase`: a separate `AntennaRuntimeState`
+(`src/game/antenna/AntennaRuntimeState.ts`) and `AntennaProgressionPhase`
+(`src/game/antenna/AntennaProgressionPhase.ts`), constructed alongside the
+other two runtime-state instances by `FacilityGreyboxScene.ts`. Three
+progression enums now coexist; integration between them is via explicit
+prerequisite checks (e.g. `AntennaProgressionPhase` cannot advance past
+`Unavailable` until `ReceiverController.isDecoded(...)` is true AND the
+rooftop circuit is energized) and typed event subscriptions in
+`facilityAntennaBindings.ts` — never a merged enum. See
+`docs/architecture/antenna-runtime-state.md` for the full reasoning.

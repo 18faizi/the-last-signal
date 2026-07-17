@@ -81,3 +81,16 @@ mechanism as every other powered load — `ReceiverController.powerOn()`/
 `src/scenes/facility-greybox/signal/facilityReceiverBindings.ts`, never by
 the receiver polling `PowerNetwork` itself. Nothing in `src/game/power/`
 changed for Milestone 0.7.
+
+## Milestone 0.8: the antenna cabinet reuses this layer unchanged too
+
+The rooftop antenna cabinet (`docs/architecture/antenna-state-model.md`)
+is powered through the same `fg-circuit-rooftop-antenna` circuit that
+already existed from M0.6 (previously feeding only the deck lights/beacon)
+and the exact same `PoweredStateBinding.forCircuit()` mechanism —
+`AntennaController.powerOn()`/`powerOff()` are called by a subscription in
+`src/scenes/facility-greybox/antenna/facilityAntennaBindings.ts`, never by
+polling `PowerNetwork` directly. Power loss routes every registered array
+to `Offline` and freezes (never discards) in-flight mechanical positions —
+see `antenna-state-model.md`. Nothing in `src/game/power/` changed for
+Milestone 0.8.

@@ -15,17 +15,19 @@ export type InteractionMode =
   | 'transitioning'
   | 'inventory'
   | 'power-panel'
-  | 'receiver';
+  | 'receiver'
+  | 'antenna-panel';
 
 const TRANSITIONS: Readonly<Record<InteractionMode, readonly InteractionMode[]>> = {
   gameplay: ['holding', 'transitioning', 'inventory'],
   holding: ['gameplay'],
-  transitioning: ['inspecting', 'reading', 'power-panel', 'receiver', 'gameplay'],
+  transitioning: ['inspecting', 'reading', 'power-panel', 'receiver', 'antenna-panel', 'gameplay'],
   inspecting: ['gameplay'],
   reading: ['gameplay'],
   inventory: ['gameplay'],
   'power-panel': ['gameplay'],
   receiver: ['gameplay'],
+  'antenna-panel': ['gameplay'],
 };
 
 export function canTransitionMode(from: InteractionMode, to: InteractionMode): boolean {
@@ -46,6 +48,7 @@ export function isOverlayMode(mode: InteractionMode): boolean {
     mode === 'transitioning' ||
     mode === 'inventory' ||
     mode === 'power-panel' ||
-    mode === 'receiver'
+    mode === 'receiver' ||
+    mode === 'antenna-panel'
   );
 }

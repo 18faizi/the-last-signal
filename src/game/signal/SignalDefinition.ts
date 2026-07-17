@@ -46,9 +46,14 @@ export interface SignalDefinition {
   readonly requiredForProgression: boolean;
 
   /**
-   * Reserved for a future rooftop-antenna-alignment dependency (Milestone
-   * 0.8+). Unused by M0.7 — the evaluator never reads it — but modeled now
-   * so the definition shape doesn't need to change later.
+   * Reserved placeholder from M0.7 for a possible rooftop-antenna-alignment
+   * dependency. Milestone 0.8 shipped WITHOUT wiring this field: antenna
+   * prerequisites are tracked entirely by the separate
+   * `AntennaProgressionPhase` chain (`first_anomalous_transmission` decoded
+   * + rooftop circuit energized, checked directly in
+   * `facilityAntennaBindings.ts`), not by a per-signal reference here.
+   * `SignalEvaluator` still never reads it. Left in place, still unused, in
+   * case a future milestone wants a more granular per-signal linkage.
    */
   readonly antennaAlignmentId?: string;
 

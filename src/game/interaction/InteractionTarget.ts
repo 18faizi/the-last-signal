@@ -7,7 +7,7 @@ export type InteractionTargetId = string;
 
 /** How pressing the interaction key behaves for a target. */
 export type TargetInteractionKind =
-  'immediate' | 'hold' | 'inspect' | 'read' | 'panel' | 'receiver' | 'disabled';
+  'immediate' | 'hold' | 'inspect' | 'read' | 'panel' | 'receiver' | 'antenna' | 'disabled';
 
 export interface InteractionPromptSpec {
   /** Action verb shown in the prompt, e.g. "USE", "INSPECT", "READ". */
@@ -108,4 +108,13 @@ export interface ReceiverTarget extends InteractionTarget {
 
 export function isReceiverTarget(target: InteractionTarget): target is ReceiverTarget {
   return target.kind === 'receiver';
+}
+
+/** Targets that open the full-screen antenna control panel overlay. */
+export interface AntennaTarget extends InteractionTarget {
+  readonly kind: 'antenna';
+}
+
+export function isAntennaTarget(target: InteractionTarget): target is AntennaTarget {
+  return target.kind === 'antenna';
 }

@@ -51,3 +51,11 @@ exactly where you left off. Losing control-room power (breaker trips,
 circuit switched off) resets the live tuning session, but a transmission
 you already fully decoded stays remembered for the rest of the session —
 reopening on that channel jumps straight back to the decoded transcript.
+
+## What decoding unlocks next (Milestone 0.8)
+
+Decoding `first_anomalous_transmission` is a prerequisite for the rooftop
+antenna alignment puzzle — see `docs/gameplay/antenna-alignment.md`. The
+decoded fact itself is permanent (nothing in the antenna puzzle can reset
+it); if your receiver tuning later drifts poor, only the ANTENNA panel's
+own source-analysis readiness falls, never this decoded status.

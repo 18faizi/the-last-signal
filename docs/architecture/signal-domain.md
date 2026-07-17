@@ -52,3 +52,18 @@ Visual noise/animation in the UI canvas layers (`src/ui/signal/`) is
 allowed to vary cosmetically but is computed entirely in the UI layer from
 values this domain layer already produced — it never feeds back into
 `evaluate()` or the accumulators.
+
+## Milestone 0.8: unchanged, composed (not modified) by the antenna domain
+
+Nothing in `src/game/signal/` changed for Milestone 0.8, including
+`SignalEvaluator.ts`'s core channel/frequency/gain/filter/phase math — this
+was a hard constraint. The new antenna/waveguide/source-analysis domains
+(see `antenna-domain.md`) read `ReceiverMetrics.overallQuality` AS-IS,
+via a separate pure composition evaluator
+(`src/game/source-analysis/AnalysisQualityEvaluator.ts`), to derive a
+distinct "source-analysis quality ceiling" — see `bearing-analysis.md`'s
+"Two quality concepts" section for exactly how the two are kept from being
+conflated. `SignalDefinition.antennaAlignmentId` (a placeholder field
+added in M0.7) ended up unused by M0.8's actual implementation — antenna
+prerequisites are tracked by a separate progression chain instead; see the
+field's own doc comment.

@@ -29,6 +29,7 @@ import {
   isReadableTarget,
   isPanelTarget,
   isReceiverTarget,
+  isAntennaTarget,
   AVAILABLE,
 } from './InteractionTarget';
 import type { InspectionController } from './inspection/InspectionController';
@@ -54,6 +55,13 @@ export interface ReceiverPanelControls {
   readonly isOpen: boolean;
 }
 
+export interface AntennaPanelControls {
+  /** Returns false when the antenna control cabinet isn't powered yet. */
+  open(onClose: () => void): boolean;
+  close(): void;
+  readonly isOpen: boolean;
+}
+
 export interface InteractionSystemDeps {
   readonly scene: Scene;
   readonly player: FirstPersonController;
@@ -73,6 +81,8 @@ export interface InteractionSystemDeps {
   readonly powerPanel?: PowerPanelControls | null;
   /** Signal receiver overlay (opened via a 'receiver'-kind target); null when not provided. */
   readonly receiverPanel?: ReceiverPanelControls | null;
+  /** Antenna control panel overlay (opened via an 'antenna'-kind target); null when not provided. */
+  readonly antennaPanel?: AntennaPanelControls | null;
 }
 
 /** Plain-data snapshot for the debug overlay and test bridge. */
@@ -254,6 +264,7 @@ export class InteractionSystem implements Disposable {
     this.deps.documents.close();
     this.deps.powerPanel?.close();
     this.deps.receiverPanel?.close();
+    this.deps.antennaPanel?.close();
   }
 
   dispose(): void {
@@ -306,6 +317,15 @@ export class InteractionSystem implements Disposable {
 
     if (this.mode === 'receiver') {
       const panel = this.deps.receiverPanel;
+      if (panel === undefined || panel === null || !panel.isOpen) {
+        this.transition('gameplay');
+      }
+      this.interactQueued = false;
+      return;
+    }
+
+    if (this.mode === 'antenna-panel') {
+      const panel = this.deps.antennaPanel;
       if (panel === undefined || panel === null || !panel.isOpen) {
         this.transition('gameplay');
       }
@@ -500,6 +520,24 @@ export class InteractionSystem implements Disposable {
       }
       return;
     }
+    if (isAntennaTarget(target)) {
+      const panel = this.deps.antennaPanel;
+      if (panel === undefined || panel === null) {
+        this.execute(target);
+        return;
+      }
+      this.transition('transitioning');
+      const opened = panel.open(() => {
+        // Closed via the panel's own controls; per-frame update returns us
+        // to gameplay mode.
+      });
+      if (opened) {
+        this.enterOverlayMode('antenna-panel');
+      } else {
+        this.transition('gameplay');
+      }
+      return;
+    }
     this.execute(target);
   }
 
@@ -528,7 +566,9 @@ export class InteractionSystem implements Disposable {
     }
   }
 
-  private enterOverlayMode(mode: 'inspecting' | 'reading' | 'power-panel' | 'receiver'): void {
+  private enterOverlayMode(
+    mode: 'inspecting' | 'reading' | 'power-panel' | 'receiver' | 'antenna-panel',
+  ): void {
     this.transition(mode);
     this.cancelHoldIfActive();
     this.clearFocus();
