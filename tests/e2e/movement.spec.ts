@@ -92,11 +92,13 @@ test('player can walk, stop, jump and crouch through the movement course', async
   expect(stopped.mode).toBe('idle');
 
   // Jump: vertical state must change (airborne, then settle back grounded).
-  // Use expect.poll: the access-test scene has more physics bodies than the
-  // movement-test scene, so under SwiftShader it takes longer to go airborne.
+  // Use expect.poll: the facility scene has grown substantially heavier
+  // (doors, power network, receiver console) since this timeout was last
+  // tuned, so under loaded SwiftShader it can take longer than a second to
+  // register the first airborne frame.
   await page.keyboard.press('Space');
   await expect
-    .poll(() => getPlayerState(page).then((s) => s.grounded), { timeout: 1000 })
+    .poll(() => getPlayerState(page).then((s) => s.grounded), { timeout: 3000 })
     .toBe(false);
   const airborne = await getPlayerState(page);
   expect(airborne.mode).toBe('airborne');
