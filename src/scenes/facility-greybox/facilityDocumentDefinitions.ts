@@ -147,4 +147,34 @@ export const FACILITY_DOCUMENTS: readonly DocumentDefinition[] = [
       },
     ],
   },
+  {
+    id: 'doc-transmission-first-anomalous',
+    title: 'DECODED TRANSMISSION — CHANNEL 3 (PROVISIONAL)',
+    date: 'UNDATED',
+    author: 'Auto-Transcription, Field Receiver R-2',
+    blocks: [
+      {
+        kind: 'heading',
+        text: 'PROVISIONAL DECODE — UNVERIFIED',
+      },
+      {
+        kind: 'paragraph',
+        text: 'Carrier locked. Decode confidence acceptable. Transcription follows, reproduced verbatim including apparent transmission artifacts.',
+      },
+      {
+        kind: 'mono',
+        lines: [
+          '...repeating from mark. do not restore the rooftop array. do not',
+          'restore the rooftop array. the interval was never forty-seven',
+          'minutes, it was counting down. timestamp received: 04 November,',
+          '0347 — logged reception three days before this transmission was',
+          'sent. verify equipment fault before further action...',
+        ],
+      },
+      {
+        kind: 'paragraph',
+        text: 'Note appended by receiving operator: the embedded timestamp precedes the recorded reception time, which is not possible for a real transmission and strongly suggests equipment fault or transcription error. Flagged for engineering review; do not treat as reliable pending verification.',
+      },
+    ],
+  },
 ];

@@ -74,3 +74,15 @@ interface FacilitySnapshot {
 
 `state.reset()` returns the instance to its initial `'Approach'` phase and
 clears all sets. Used in dev tooling and future save/load integration.
+
+## Milestone 0.7: a sibling model for the signal puzzle, not an extension
+
+Milestone 0.7's receiver/decode puzzle does **not** extend
+`FacilityRuntimeState` or `ProgressionPhase` further — it introduces a
+separate `ReceiverRuntimeState` (`src/game/receiver/ReceiverRuntimeState.ts`)
+and `SignalProgressionPhase` (`src/game/receiver/SignalProgressionPhase.ts`),
+constructed alongside `FacilityRuntimeState` by `FacilityGreyboxScene.ts`
+rather than folded into it. See `docs/architecture/signal-runtime-state.md`
+for the full reasoning and `docs/level-design/power-progression.md` for how
+the existing `ReceiverActivated`/`PowerNetworkOperational` phases were
+preserved (not removed) with an updated trigger.

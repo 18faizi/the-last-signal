@@ -13,13 +13,17 @@ and look are suspended while **any** token is held (`InputLockSet`,
 - two locks with the same reason are still independent.
 
 Reasons (`inspection` | `document` | `transition` | `inventory` |
-`power-panel`) are labels for debugging (shown in the debug overlay), not
-keys. `power-panel` (M0.6) is acquired/released by `PowerPanelSession`
-(`src/game/interaction/power/PowerPanelSession.ts`), which mirrors
-`DocumentController` almost exactly: acquire on open, suppress the
-pointer-lock prompt, release pointer lock (the distribution panel dialog
-needs a free cursor to click its toggle buttons), release the lock on
-close.
+`power-panel` | `receiver`) are labels for debugging (shown in the debug
+overlay), not keys. `power-panel` (M0.6) is acquired/released by
+`PowerPanelSession` (`src/game/interaction/power/PowerPanelSession.ts`),
+which mirrors `DocumentController` almost exactly: acquire on open,
+suppress the pointer-lock prompt, release pointer lock (the distribution
+panel dialog needs a free cursor to click its toggle buttons), release the
+lock on close. `receiver` (M0.7) is acquired/released by
+`ReceiverPanelSession` (`src/game/interaction/receiver/ReceiverPanelSession.ts`),
+which mirrors `PowerPanelSession` exactly — including the same one-
+directional close flow (the session's `close()` calls into
+`ReceiverPanelView.close()`, never the reverse).
 
 ## What suspension does
 
@@ -52,3 +56,17 @@ InputManager action event fans out to both systems, but the player
 controller discards its R while input is locked and the InteractionSystem
 handles R only while `mode === 'inspecting'` — the two can never fire on
 the same press.
+
+`R` is also the receiver panel's "reset tuning controls" key (M0.7). Unlike
+inspection-reset, the receiver panel doesn't route through
+`InputAction`/`InputManager` at all for its tuning keys — it attaches its
+own scoped `document.addEventListener('keydown', ...)` while open (the
+same technique `DistributionPanelView`/`DocumentReaderView` already use for
+Escape), so `InputManager`'s window-level listener and the panel's
+document-level listener both see the same keydown. `InputManager` still
+queues a `ResetPlayer` action from it, but since the `receiver` input lock
+is held for the panel's entire lifetime, `movementActive` is false and
+`FirstPersonController.update()` discards the queued action before it
+could ever call `respawn()` — the two still never fire on the same press.
+See `docs/development/receiver-ui.md`'s "Input handling" section for the
+full key list.

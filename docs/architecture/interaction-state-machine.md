@@ -7,11 +7,12 @@ booleans:
 ```
 gameplay      → holding | transitioning | inventory
 holding       → gameplay
-transitioning → inspecting | reading | power-panel | gameplay
+transitioning → inspecting | reading | power-panel | receiver | gameplay
 inspecting    → gameplay
 reading       → gameplay
 inventory     → gameplay
 power-panel   → gameplay
+receiver      → gameplay
 ```
 
 - **gameplay** — focus raycasting, prompts, press/hold input live here.
@@ -36,16 +37,30 @@ power-panel   → gameplay
   target's own `interact()`. Per-frame, `update()`'s `power-panel` branch
   mirrors the `reading` branch: it checks `powerPanel.isOpen` and
   transitions back to `gameplay` once the dialog closes.
+- **receiver** (M0.7) — the signal receiver's full-screen tuning panel.
+  Added as a direct sibling of `power-panel`: same `transitioning` entry
+  path (world-object interaction, not a hotkey), same `InteractionTarget`
+  pattern (`'receiver'` kind, `isReceiverTarget()` guard,
+  `InteractionSystem.activate()` calling `receiverPanel.open(onClose)`
+  instead of `interact()`), same per-frame `update()` branch shape
+  (`receiverPanel.isOpen` check, fall back to `gameplay` once closed). The
+  table's structural symmetry with `power-panel` is what makes "prevent
+  receiver from opening during inventory/reading/inspecting/power-panel,
+  and prevent those from opening during receiver" fall out for free: every
+  one of those modes' only listed successor is `gameplay`, so none of them
+  can reach `receiver` (or each other) directly — see
+  `interactionModeReceiver.test.ts`.
 
 Consequences enforced by the table (unit-tested in
-`interactionMode.test.ts`): reading cannot begin while inspecting (and vice
-versa); no overlay can begin during an active hold; a cancelled hold and a
-closed overlay always return to gameplay; `assertModeTransition` throws on
-anything else, so an illegal jump is a bug surfaced immediately rather than
-silent state corruption. Scene disposal is mode-independent: every
-subsystem (`InteractionSystem`, `InspectionController`,
-`DocumentController`, `PowerPanelSession`) disposes its own resources
-regardless of the current mode.
+`interactionMode.test.ts`, `interactionModeInventory.test.ts`,
+`interactionModeReceiver.test.ts`): reading cannot begin while inspecting
+(and vice versa); no overlay can begin during an active hold; a cancelled
+hold and a closed overlay always return to gameplay; `assertModeTransition`
+throws on anything else, so an illegal jump is a bug surfaced immediately
+rather than silent state corruption. Scene disposal is mode-independent:
+every subsystem (`InteractionSystem`, `InspectionController`,
+`DocumentController`, `PowerPanelSession`, `ReceiverPanelSession`) disposes
+its own resources regardless of the current mode.
 
 Focus is modeled separately (`FocusStability.ts`) — it is a property of
 gameplay/holding, not a machine state.

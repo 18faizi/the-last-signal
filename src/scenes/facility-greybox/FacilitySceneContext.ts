@@ -22,6 +22,8 @@ import type { GeneratorController } from '../../game/generator/GeneratorControll
 import type { DistributionPanelController } from '../../game/electrical/DistributionPanelController';
 import type { EmergencyPowerController } from '../../game/electrical/EmergencyPowerController';
 import type { PowerAccessQuery } from '../../game/access/PowerAccessQuery';
+import type { ReceiverController } from '../../game/receiver/ReceiverController';
+import type { ReceiverRuntimeState } from '../../game/receiver/ReceiverRuntimeState';
 import type { FacilityMaterials } from './FacilityMaterials';
 import type { FacilityGeometryHelper } from './FacilityGeometryHelper';
 
@@ -61,6 +63,10 @@ export interface FacilitySceneContext {
   readonly emergencyPower: EmergencyPowerController;
   /** Power-aware access query fed to doors that combine item + power requirements. */
   readonly powerQuery: PowerAccessQuery;
+
+  // Signal receiver domain (Milestone 0.7)
+  readonly receiverController: ReceiverController;
+  readonly receiverRuntimeState: ReceiverRuntimeState;
 
   // Shared resources
   readonly materials: FacilityMaterials;

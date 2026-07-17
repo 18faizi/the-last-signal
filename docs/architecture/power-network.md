@@ -71,3 +71,13 @@ Per the M0.4 `InventoryService` precedent, this is domain-service state with
 typed events — never written into Zustand every frame. The distribution
 panel UI, indicator lights, and debug overlays all observe `PowerNetwork`
 through `subscribe()` or `PoweredStateBinding`, not through a store.
+
+## Milestone 0.7: the signal receiver reuses this layer unchanged
+
+The receiver console (`docs/architecture/receiver-state-model.md`) is
+powered through the exact same `PoweredStateBinding.forCircuit()`
+mechanism as every other powered load — `ReceiverController.powerOn()`/
+`powerOff()` are called by a subscription in
+`src/scenes/facility-greybox/signal/facilityReceiverBindings.ts`, never by
+the receiver polling `PowerNetwork` itself. Nothing in `src/game/power/`
+changed for Milestone 0.7.

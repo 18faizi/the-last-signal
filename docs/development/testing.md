@@ -283,3 +283,71 @@ See `../development/power-debugging.md` for the full list
 `requestCircuit`, `toggleCircuit`, the distribution-panel open/close/query
 functions, `activateReceiver`, `resetFacility`). All removed on scene
 disposal, same as every other bridge extension.
+
+## Milestone 0.7 additions — signal domain and receiver
+
+New pure-logic unit suites (`src/tests/unit/`): `signalEvaluator.test.ts`
+(exact target, frequency falloff + out-of-capture-range, gain too-low/
+optimal/too-high, filter too-low/optimal/too-high, phase exact + circular
+wraparound, channel mismatch capping quality to 0, overall-quality
+weighting + clamping, limiting-factor selection, effective-strength/noise/
+SNR feedback isolation), `signalLockController.test.ts` and
+`decodeController.test.ts` (below/candidate/accumulation/decay/loss,
+frame-rate independence, delta clamp, single-fire completion event,
+pause-vs-full-loss for decode), `receiverController.test.ts` (boot, open/
+reopen, power loss/restoration, decoded-state fast-path restoration, dev
+reset, scan determinism), `receiverMode.test.ts`/`signalProgressionPhase.test.ts`
+(transition tables), `receiverRuntimeState.test.ts`,
+`signalValidation.test.ts` (duplicate ids, every invalid-value case,
+missing transcript, the solver-style report against the actual shipped
+signal), `interactionModeReceiver.test.ts` (mirrors
+`interactionModeInventory.test.ts`), `decodeProgressView.test.ts`
+(`selectStatusMessage()` — pure, no DOM needed).
+
+**A real bug caught while writing these tests**: `SignalLockController`'s
+original `switch`-based `update()` handled `Searching`→`Acquiring` as a
+state-only transition with no accumulation on that same tick, so a
+cold-start controller ticked in real per-frame-sized steps fell
+consistently one tick short of `Locked` compared to ticking the same total
+elapsed time as fewer, larger steps — a genuine frame-rate-independence
+violation, not a test artifact. Fixed by restructuring the transition
+logic so `Searching`/`Candidate`→`Acquiring` falls through into the
+accumulation branch within the same `update()` call (see
+`docs/architecture/signal-evaluation.md`'s "Lock and decode accumulation"
+section for the full before/after reasoning). `Locked`→`Lost` deliberately
+does **not** get the same treatment — `Lost` must remain observable for
+exactly one tick, per `receiver-state-model.md`.
+
+**dt-clamp gotcha in test design**: both `SignalLockController.update()`
+and `DecodeController.update()` clamp `dt` to a small per-tick maximum
+(0.1s) — a single `update(1, quality)` call therefore does **not**
+accumulate a full second's worth of progress, it behaves like one capped
+0.1s tick (matching `PlayerConfig.maxDeltaTimeSeconds`'s established
+precedent of capping a delta spike rather than compensating for it with
+substeps). Tests that want N seconds of simulated elapsed time must tick
+in real per-frame-sized steps summing to N, exactly like a real render
+loop would — a `run()`/`runLocked()` helper in each test file does this.
+
+### `tests/e2e/signal.spec.ts`
+
+Mirrors `power.spec.ts`'s structure and bridge-shortcut discipline exactly:
+most tests drive the receiver through `receiverAction`/`getReceiverSnapshot`/
+etc. for setup speed, and the bridge's `receiverAction` only ever sets
+tuning CONTROL values (channel/frequency/gain/filter/phase) — it never sets
+quality/lock/decode/completion state directly; those always flow through
+the real `SignalEvaluator`/`SignalLockController`/`DecodeController` driven
+by the scene's real per-frame `update()` tick. The dedicated "full signal
+puzzle" test additionally drives the control-room power setup and opens
+the receiver via a real `[E]` press at the `fg-tp-receiver` vantage point,
+tunes via the same control setters (still not a quality/lock/decode
+shortcut — they call the identical `ReceiverController` methods a real
+keyboard/mouse interaction would), and opens the transcript via a real
+click on `.receiver-transcript-open-btn`.
+
+A `getSignalEventCounters()` bridge hook (cumulative `lockAcquired`/
+`lockLost`/`decodeCompleted`/`channelActivityDetected` counts, subscribed
+once at scene creation) is what several tests use to prove lock/decode
+completion events never double-fire — including across a close/reopen
+cycle of an already-decoded receiver, which the decoded-state fast path
+(see `receiver-state-model.md`) is specifically designed to avoid
+re-triggering.

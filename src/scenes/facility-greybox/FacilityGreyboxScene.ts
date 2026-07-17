@@ -97,6 +97,17 @@ import { buildDistributionPanel } from './power/buildDistributionPanel';
 import { buildPoweredIndicators, INDICATORS } from './power/buildPoweredIndicators';
 import type { PowerCircuitId } from '../../game/power/PowerCircuitId';
 import type { PowerSourceId } from '../../game/power/PowerSourceId';
+import { ReceiverController } from '../../game/receiver/ReceiverController';
+import { ReceiverRuntimeState } from '../../game/receiver/ReceiverRuntimeState';
+import { ReceiverPanelSession } from '../../game/interaction/receiver/ReceiverPanelSession';
+import { ReceiverPanelView } from '../../ui/signal/ReceiverPanelView';
+import { SignalDebugOverlay } from './overlay/SignalDebugOverlay';
+import { formatReceiverCompactFields } from '../../game/receiver/ReceiverDebugView';
+import { validateSignalDefinitions } from '../../game/signal/SignalValidation';
+import { FACILITY_SIGNALS } from './signal/facilitySignalDefinitions';
+import { buildReceiverConsole } from './signal/buildReceiverConsole';
+import { bindFacilityReceiver } from './signal/facilityReceiverBindings';
+import type { SignalId } from '../../game/signal/SignalId';
 
 const SPAWN_POSITION = new Vector3(-58, 0.1, 0);
 const SPAWN_YAW = 0; // facing east (+X)
@@ -154,6 +165,13 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       isCircuitEnergized: (circuitId) => powerNetwork.isCircuitEnergized(circuitId),
     };
 
+    // ----- Signal receiver domain (Milestone 0.7) ---------------------------
+    const receiverController = new ReceiverController();
+    for (const signal of FACILITY_SIGNALS) {
+      receiverController.registerSignal(signal);
+    }
+    const receiverRuntimeState = new ReceiverRuntimeState();
+
     // ----- Register static definitions -------------------------------------
     for (const itemDef of FACILITY_ITEM_DEFS) {
       itemRegistry.register(itemDef);
@@ -188,6 +206,12 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       });
       if (powerProblems.length > 0) {
         throw new Error(`[PowerValidator] ${powerProblems.join('; ')}`);
+      }
+      const signalProblems = validateSignalDefinitions(FACILITY_SIGNALS, {
+        documentIds: FACILITY_DOCUMENTS.map((d) => d.id),
+      });
+      if (signalProblems.length > 0) {
+        throw new Error(`[SignalValidator] ${signalProblems.join('; ')}`);
       }
     }
 
@@ -246,6 +270,8 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       distributionPanel,
       emergencyPower,
       powerQuery,
+      receiverController,
+      receiverRuntimeState,
       materials,
       geo,
       devConfig: { isDevelopment: context.environment.isDevelopment },
@@ -287,7 +313,9 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     buildSupervisorOffice(ctx, scene);
     buildRooftopAntennaDeck(ctx, scene);
     buildDistributionPanel(ctx, scene);
+    buildReceiverConsole(ctx, scene);
     const powerIndicatorBindings = buildPoweredIndicators(ctx, scene);
+    const receiverBindings = bindFacilityReceiver(ctx);
 
     context.onPhysicsReady();
 
@@ -322,6 +350,21 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     const powerPanelSession = new PowerPanelSession(
       distributionPanel,
       distributionPanelView,
+      controller,
+      context.canvas,
+    );
+    const receiverPanelView = new ReceiverPanelView(
+      context.overlayParent,
+      receiverController,
+      () => {
+        const id = receiverController.getSnapshot().activeSignalId;
+        return id !== null ? receiverController.getSignalDefinition(id) : undefined;
+      },
+      (documentId: string) => documentRegistry.get(documentId),
+    );
+    const receiverPanelSession = new ReceiverPanelSession(
+      receiverController,
+      receiverPanelView,
       controller,
       context.canvas,
     );
@@ -365,6 +408,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       debugView,
       inventoryViewer,
       powerPanel: powerPanelSession,
+      receiverPanel: receiverPanelSession,
     });
 
     // ----- Dev overlays (F7, F8, F9) ---------------------------------------
@@ -424,6 +468,18 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       });
     }
 
+    // F11 signal/receiver debug overlay (dev only)
+    let signalDebugOverlay: SignalDebugOverlay | null = null;
+    let removeSignalDebugListener: (() => void) | null = null;
+    if (context.environment.isDevelopment) {
+      signalDebugOverlay = new SignalDebugOverlay(context.overlayParent, receiverController);
+      removeSignalDebugListener = context.input.onAction((action) => {
+        if (action === InputAction.ToggleSignalDebug) {
+          signalDebugOverlay?.toggle();
+        }
+      });
+    }
+
     // ----- Power/generator event wiring → facilityState mirror + progression -
     const unsubGeneratorEvents = generatorController.subscribe((event) => {
       const snap = generatorController.snapshot;
@@ -460,6 +516,33 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         if (state !== undefined) {
           facilityState.recordSourceAvailability(event.sourceId, state.availability);
         }
+      }
+    });
+
+    // Signal-event counters — dev/test-only, used by the repetition/leak
+    // e2e suite to prove lock/decode completion events never double-fire.
+    const signalEventCounters = {
+      lockAcquired: 0,
+      lockLost: 0,
+      decodeCompleted: 0,
+      channelActivityDetected: 0,
+    };
+    const unsubSignalCounters = receiverController.subscribe((event) => {
+      switch (event.kind) {
+        case 'LockAcquired':
+          signalEventCounters.lockAcquired++;
+          break;
+        case 'LockLost':
+          signalEventCounters.lockLost++;
+          break;
+        case 'DecodeCompleted':
+          signalEventCounters.decodeCompleted++;
+          break;
+        case 'ChannelActivityDetected':
+          signalEventCounters.channelActivityDetected++;
+          break;
+        default:
+          break;
       }
     });
 
@@ -545,6 +628,51 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         };
         b['isDistributionPanelOpen'] = () => distributionPanelView.isOpen;
         b['activateReceiver'] = () => interaction.devActivate('fg-receiver');
+
+        // ----- Milestone 0.7: signal/receiver test surface ------------------
+        b['getReceiverSnapshot'] = () => receiverController.getSnapshot();
+        b['getSignalRuntimeSnapshot'] = () => receiverRuntimeState.getSnapshot();
+        b['openReceiverPanel'] = () => interaction.devActivate('fg-receiver');
+        b['closeReceiverPanel'] = () => {
+          receiverPanelSession.close();
+        };
+        b['isReceiverPanelOpen'] = () => receiverPanelView.isOpen;
+        b['receiverAction'] = (action: string, value?: number) => {
+          switch (action) {
+            case 'setChannel':
+              if (value !== undefined) receiverController.setChannel(value);
+              return true;
+            case 'setFrequency':
+              if (value !== undefined) receiverController.setFrequency(value);
+              return true;
+            case 'setGain':
+              if (value !== undefined) receiverController.setGain(value);
+              return true;
+            case 'setFilter':
+              if (value !== undefined) receiverController.setFilter(value);
+              return true;
+            case 'setPhase':
+              if (value !== undefined) receiverController.setPhase(value);
+              return true;
+            case 'startScan':
+              return receiverController.startScan();
+            case 'cancelScan':
+              receiverController.cancelScan();
+              return true;
+            case 'resetControls':
+              receiverController.resetControls();
+              return true;
+            default:
+              return false;
+          }
+        };
+        b['getSignalEventCounters'] = () => ({ ...signalEventCounters });
+        b['getDecodedTranscript'] = (signalId: string) => {
+          const def = receiverController.getSignalDefinition(signalId as SignalId);
+          if (def === undefined || !receiverController.isDecoded(def.id)) return null;
+          return documentRegistry.get(def.transcriptDocumentId) ?? null;
+        };
+
         b['resetFacility'] = () => {
           facilityState.reset();
           powerNetwork.reset();
@@ -557,6 +685,9 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           // the domain controller's closePanel() alone only clears its own
           // isOpen flag.
           powerPanelSession.close();
+          receiverPanelSession.close();
+          receiverController.reset();
+          receiverRuntimeState.reset();
           emergencyPower.initializeEmergencyPower();
           controller.teleportTo(SPAWN_POSITION, SPAWN_YAW);
         };
@@ -571,6 +702,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       // Tick the facility debug overlay (rate-limited internally).
       facilityDebugOverlay?.tick();
       powerDebugOverlay?.tick();
+      signalDebugOverlay?.tick();
 
       // Read motor's foot position without allocating.
       const motorState = (
@@ -630,7 +762,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
 
     return {
       scene,
-      markerText: 'Milestone 0.6 — Power Network',
+      markerText: 'Milestone 0.7 — Signal Receiver',
       getDebugFields: () => {
         const snap = facilityState.getSnapshot();
         const genSnap = generatorController.snapshot;
@@ -673,6 +805,8 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           ['Panel', distributionPanel.isOpen ? 'open' : 'closed'],
           ['Receiver activated', snap.power.receiverActivated ? 'yes' : 'no'],
           ['Power milestone', snap.power.powerNetworkOperational ? 'OPERATIONAL' : 'pending'],
+          ...formatReceiverCompactFields(receiverController.getSnapshot()),
+          ['Signal phase', receiverRuntimeState.signalPhase],
         ];
       },
       dispose(): void {
@@ -693,6 +827,14 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
             delete b['closeDistributionPanel'];
             delete b['isDistributionPanelOpen'];
             delete b['activateReceiver'];
+            delete b['getReceiverSnapshot'];
+            delete b['getSignalRuntimeSnapshot'];
+            delete b['openReceiverPanel'];
+            delete b['closeReceiverPanel'];
+            delete b['isReceiverPanelOpen'];
+            delete b['receiverAction'];
+            delete b['getDecodedTranscript'];
+            delete b['getSignalEventCounters'];
             delete b['resetFacility'];
           }
         }
@@ -704,6 +846,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         removeTeleportListener?.();
         removeFacilityDebugListener?.();
         removePowerDebugListener?.();
+        removeSignalDebugListener?.();
 
         if (zoneObserver !== null) {
           scene.onBeforeRenderObservable.remove(zoneObserver);
@@ -712,15 +855,20 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         unsubInventory();
         unsubGeneratorEvents();
         unsubPowerEvents();
+        unsubSignalCounters();
+        receiverBindings.dispose();
         for (const binding of powerIndicatorBindings) {
           binding.dispose();
         }
 
         facilityDebugOverlay?.dispose();
         powerDebugOverlay?.dispose();
+        signalDebugOverlay?.dispose();
         teleportMenu?.dispose();
         powerPanelSession.dispose();
+        receiverPanelSession.dispose();
         distributionPanelView.dispose();
+        receiverPanelView.dispose();
         powerStatusView.dispose();
         generatorStatusView.dispose();
         interaction.dispose();
@@ -746,6 +894,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         itemRegistry.clear();
         generatorController.dispose();
         powerNetwork.dispose();
+        receiverController.dispose();
 
         geo.dispose();
         materials.dispose();

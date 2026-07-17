@@ -41,9 +41,13 @@ Milestone 0.6. Run through this in a real browser after any change touching
    tunnel power) → locked, prompt shows the combined reason. Energize the
    tunnel circuit → door opens.
 3. With Control Room off, the field receiver prompt reads `NO POWER`. Turn
-   the circuit on → prompt becomes `[E] ACTIVATE RECEIVER`. Activate → F3
-   shows `Power milestone: OPERATIONAL`, one-shot (re-approaching shows
-   `ACTIVATED`, not interactable again).
+   the circuit on → the receiver boots (~1.5s) and the prompt becomes
+   `[E] OPERATE SIGNAL RECEIVER`; F3 shows `Power milestone: OPERATIONAL`
+   as soon as it finishes booting. See
+   `docs/development/manual-signal-receiver-test-plan.md` for the full
+   Milestone 0.7 tuning-puzzle test pass (Milestone 0.6's provisional
+   one-shot "ACTIVATE RECEIVER" no longer exists — the receiver is now a
+   real tunable console).
 
 ## Fail-safes
 

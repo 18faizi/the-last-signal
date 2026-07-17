@@ -111,3 +111,24 @@ compact generator/power rows; and the test bridge gained
 `activateReceiver()`, and `resetFacility()` (the dev full-reset action —
 also clears every M0.5 field, superseding any ad-hoc reset previously done
 by hand). `getFacilityState()` now also returns a `power` field.
+
+## Milestone 0.7 additions
+
+See `signal-debugging.md` for the full breakdown. In short: `F11` toggles a
+new signal/receiver debug overlay (`SignalDebugOverlay`, bottom-right,
+mirrors F10's pattern) showing target/solution values and per-control
+quality — dev-only, never constructed in production, and never rendered by
+the compact F3 rows (which show current values and computed quality, not
+targets). The F3 overlay's `getDebugFields()` gained a compact receiver
+summary (mode, channel, frequency, gain/filter, phase, signal strength,
+noise, overall quality, lock/decode progress, decoded count) plus the
+signal-progression phase. `resetFacility()` now also resets
+`ReceiverController` and `ReceiverRuntimeState` to their power-off/
+`ReceiverOffline` defaults. The test bridge gained `getReceiverSnapshot()`,
+`getSignalRuntimeSnapshot()`, `openReceiverPanel()`/`closeReceiverPanel()`/
+`isReceiverPanelOpen()`, `receiverAction(name, value?)` (mirrors
+`generatorAction`, but most actions take a numeric value — `setChannel`,
+`setFrequency`, `setGain`, `setFilter`, `setPhase`, `startScan`,
+`cancelScan`, `resetControls`), `getDecodedTranscript(signalId)`, and
+`getSignalEventCounters()` (cumulative lock/decode/activity event counts,
+used by the repetition e2e suite to prove no event double-fires).

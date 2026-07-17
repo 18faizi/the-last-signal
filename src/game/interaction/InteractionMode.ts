@@ -8,16 +8,24 @@
  * are rejected while a transition is in flight.
  */
 export type InteractionMode =
-  'gameplay' | 'holding' | 'inspecting' | 'reading' | 'transitioning' | 'inventory' | 'power-panel';
+  | 'gameplay'
+  | 'holding'
+  | 'inspecting'
+  | 'reading'
+  | 'transitioning'
+  | 'inventory'
+  | 'power-panel'
+  | 'receiver';
 
 const TRANSITIONS: Readonly<Record<InteractionMode, readonly InteractionMode[]>> = {
   gameplay: ['holding', 'transitioning', 'inventory'],
   holding: ['gameplay'],
-  transitioning: ['inspecting', 'reading', 'power-panel', 'gameplay'],
+  transitioning: ['inspecting', 'reading', 'power-panel', 'receiver', 'gameplay'],
   inspecting: ['gameplay'],
   reading: ['gameplay'],
   inventory: ['gameplay'],
   'power-panel': ['gameplay'],
+  receiver: ['gameplay'],
 };
 
 export function canTransitionMode(from: InteractionMode, to: InteractionMode): boolean {
@@ -37,6 +45,7 @@ export function isOverlayMode(mode: InteractionMode): boolean {
     mode === 'reading' ||
     mode === 'transitioning' ||
     mode === 'inventory' ||
-    mode === 'power-panel'
+    mode === 'power-panel' ||
+    mode === 'receiver'
   );
 }

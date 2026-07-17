@@ -28,6 +28,7 @@ import {
   isInspectableTarget,
   isReadableTarget,
   isPanelTarget,
+  isReceiverTarget,
   AVAILABLE,
 } from './InteractionTarget';
 import type { InspectionController } from './inspection/InspectionController';
@@ -42,6 +43,13 @@ export interface InventoryViewControls {
 export interface PowerPanelControls {
   /** Returns false when the panel could not be opened (e.g. unknown panelId). */
   open(panelId: string, onClose: () => void): boolean;
+  close(): void;
+  readonly isOpen: boolean;
+}
+
+export interface ReceiverPanelControls {
+  /** Returns false when the receiver isn't powered/booted yet. */
+  open(onClose: () => void): boolean;
   close(): void;
   readonly isOpen: boolean;
 }
@@ -63,6 +71,8 @@ export interface InteractionSystemDeps {
   readonly inventoryViewer?: InventoryViewControls | null;
   /** Distribution panel overlay (opened via a 'panel'-kind target); null when not provided. */
   readonly powerPanel?: PowerPanelControls | null;
+  /** Signal receiver overlay (opened via a 'receiver'-kind target); null when not provided. */
+  readonly receiverPanel?: ReceiverPanelControls | null;
 }
 
 /** Plain-data snapshot for the debug overlay and test bridge. */
@@ -243,6 +253,7 @@ export class InteractionSystem implements Disposable {
     this.deps.inspection.close();
     this.deps.documents.close();
     this.deps.powerPanel?.close();
+    this.deps.receiverPanel?.close();
   }
 
   dispose(): void {
@@ -286,6 +297,15 @@ export class InteractionSystem implements Disposable {
 
     if (this.mode === 'power-panel') {
       const panel = this.deps.powerPanel;
+      if (panel === undefined || panel === null || !panel.isOpen) {
+        this.transition('gameplay');
+      }
+      this.interactQueued = false;
+      return;
+    }
+
+    if (this.mode === 'receiver') {
+      const panel = this.deps.receiverPanel;
       if (panel === undefined || panel === null || !panel.isOpen) {
         this.transition('gameplay');
       }
@@ -462,6 +482,24 @@ export class InteractionSystem implements Disposable {
       }
       return;
     }
+    if (isReceiverTarget(target)) {
+      const panel = this.deps.receiverPanel;
+      if (panel === undefined || panel === null) {
+        this.execute(target);
+        return;
+      }
+      this.transition('transitioning');
+      const opened = panel.open(() => {
+        // Closed via the panel's own controls; per-frame update returns us
+        // to gameplay mode.
+      });
+      if (opened) {
+        this.enterOverlayMode('receiver');
+      } else {
+        this.transition('gameplay');
+      }
+      return;
+    }
     this.execute(target);
   }
 
@@ -490,7 +528,7 @@ export class InteractionSystem implements Disposable {
     }
   }
 
-  private enterOverlayMode(mode: 'inspecting' | 'reading' | 'power-panel'): void {
+  private enterOverlayMode(mode: 'inspecting' | 'reading' | 'power-panel' | 'receiver'): void {
     this.transition(mode);
     this.cancelHoldIfActive();
     this.clearFocus();

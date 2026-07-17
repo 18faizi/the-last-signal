@@ -97,3 +97,18 @@ fatal 40). The single-render-loop rule is unchanged — inspection swaps
 `power-network.md`, `generator-state-model.md`, and `power-events.md` for the
 full domain-layer breakdown, and `powered-load-bindings.md` for how world
 geometry observes it without hardcoding power checks.
+
+## Milestone 0.7 addition: the signal domain layer
+
+`FacilityGreyboxScene.ts` now also wires a `ReceiverController` and a
+`ReceiverRuntimeState` at scene setup, both Babylon-free — mirrors the M0.6
+power-domain wiring exactly. `InteractionTarget` gained a `'receiver'` kind
+and `InteractionMode` gained a `'receiver'` mode, following the exact
+pattern established for `'panel'`/`'power-panel'`. `PowerNetwork` gates the
+receiver's power via the same `PoweredStateBinding` subscription mechanism
+already used for indicator lights and doors — `ReceiverController` never
+polls `PowerNetwork` itself. See `signal-domain.md`,
+`receiver-state-model.md`, `signal-evaluation.md`, `signal-events.md`,
+`signal-runtime-state.md`, and `signal-validation.md` for the full
+domain-layer breakdown, and `docs/development/receiver-ui.md` for how the
+DOM/canvas UI layer observes it.

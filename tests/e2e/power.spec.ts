@@ -138,6 +138,12 @@ function bridge(page: Page) {
         const fn = b['activateReceiver'];
         return typeof fn === 'function' ? (fn as () => boolean)() : false;
       }),
+    closeReceiverPanel: () =>
+      page.evaluate(() => {
+        const b = window.__TLS_TEST__ as unknown as Record<string, unknown>;
+        const fn = b['closeReceiverPanel'];
+        if (typeof fn === 'function') (fn as () => void)();
+      }),
     resetFacility: () =>
       page.evaluate(() => {
         const b = window.__TLS_TEST__ as unknown as Record<string, unknown>;
@@ -514,9 +520,17 @@ test('turning on a circuit powers every load registered to it', async ({ page })
 // Receiver + control room powered access
 // ---------------------------------------------------------------------------
 
-test('receiver shows NO POWER until the control-room circuit is energized, then activates once', async ({
+test('receiver shows NO POWER until the control-room circuit is energized, then boots and opens', async ({
   page,
 }) => {
+  // Milestone 0.7 replaced the provisional one-shot "[E] ACTIVATE RECEIVER"
+  // with a real tunable receiver (see tests/e2e/signal.spec.ts for the full
+  // puzzle coverage) — this test now only re-confirms the M0.6 power-gating
+  // contract still holds: no power in, no receiver access, and the
+  // receiverActivated/powerNetworkOperational milestone flags still fire
+  // (now via boot completion rather than a manual "activate" click) once
+  // the control-room circuit is energized. The panel itself is a real,
+  // repeatedly-openable dialog now, not a one-shot.
   const errors = { console: [] as string[], page: [] as string[] };
   await boot(page, errors);
   const b = bridge(page);
@@ -526,13 +540,24 @@ test('receiver shows NO POWER until the control-room circuit is energized, then 
   await startAndCloseBreaker(page);
   await b.toggleCircuit(CONTROL_ROOM_CIRCUIT);
 
-  expect(await b.activateReceiver()).toBe(true);
+  // Boot takes ~1.5s (ReceiverDefinition.bootSeconds) — the milestone flags
+  // fire on boot completion, independent of ever opening the panel.
+  await expect
+    .poll(() => b.facilityState().then((s) => s?.power.receiverActivated), { timeout: 15_000 })
+    .toBe(true);
   const facilityState = await b.facilityState();
-  expect(facilityState?.power.receiverActivated).toBe(true);
   expect(facilityState?.power.powerNetworkOperational).toBe(true);
 
-  // One-shot: activating again is rejected.
-  expect(await b.activateReceiver()).toBe(false);
+  expect(await b.activateReceiver()).toBe(true);
+  await expect(page.locator('#receiver-panel-viewer')).toBeVisible();
+
+  // Not one-shot: closing and reopening succeeds again (a real panel, not
+  // a single-use activation).
+  await b.closeReceiverPanel();
+  await expect
+    .poll(() => b.interactionState().then((s) => s?.mode), { timeout: 5000 })
+    .toBe('gameplay');
+  expect(await b.activateReceiver()).toBe(true);
 
   expect(errors.console).toHaveLength(0);
   expect(errors.page).toHaveLength(0);
@@ -1066,16 +1091,23 @@ test('full power progression: real generator startup and receiver activation', a
     .poll(() => b.facilityState().then((s) => s?.progressionPhase), { timeout: 3000 })
     .toBe('ControlRoomPowered');
 
-  // ----- Activate the receiver via a real [E] press. ----------------------
-  await press(
-    'fg-tp-receiver',
-    'fg-receiver',
-    async () => (await b.facilityState())?.power.receiverActivated === true,
-  );
-
+  // ----- Milestone 0.7: the receiver is no longer a one-shot "activate" —
+  // it boots automatically once the control-room circuit is powered (the
+  // exact same milestone trigger M0.6's one-shot used to fire manually),
+  // then a real [E] press opens the tunable receiver panel. -------------
+  await expect
+    .poll(() => b.facilityState().then((s) => s?.power.receiverActivated), { timeout: 15_000 })
+    .toBe(true);
   await expect
     .poll(() => b.facilityState().then((s) => s?.progressionPhase), { timeout: 3000 })
     .toBe('PowerNetworkOperational');
+
+  await press(
+    'fg-tp-receiver',
+    'fg-receiver',
+    async () => (await page.locator('#receiver-panel-viewer').isVisible()) === true,
+  );
+
   const finalState = await b.facilityState();
   expect(finalState?.power.receiverActivated).toBe(true);
   expect(finalState?.power.powerNetworkOperational).toBe(true);

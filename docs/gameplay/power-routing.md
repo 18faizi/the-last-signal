@@ -38,3 +38,9 @@ The **Emergency & Security** circuit is pre-energized from the emergency
 battery at scene boot — see `docs/gameplay/emergency-power.md` — so it
 doesn't need to be turned on manually, though its breaker can still be
 toggled through the panel to force it onto the generator explicitly.
+
+## Control Room circuit → signal receiver (Milestone 0.7)
+
+Energizing the **Control Room** circuit also powers the signal receiver
+console (same circuit, same panel row) — see
+`docs/gameplay/signal-receiver.md` for what that unlocks.

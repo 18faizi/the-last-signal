@@ -38,10 +38,29 @@ extension itself and its non-interference with the original chain.
 | `GreyboxComplete → GeneratorStarted`          | `GeneratorEvent.GeneratorStarted` (the crank succeeds, entering `RunningUnstable`).                                             |
 | `GeneratorStarted → MainPowerAvailable`       | `GeneratorEvent.MainBreakerClosed`.                                                                                             |
 | `MainPowerAvailable → ControlRoomPowered`     | The Control Room circuit's `PoweredStateBinding` callback fires `powered = true` (i.e. the player energized it from the panel). |
-| `ControlRoomPowered → ReceiverActivated`      | The field receiver's `interact()` succeeds (control room powered, not already activated).                                       |
-| `ReceiverActivated → PowerNetworkOperational` | Immediately follows, same `interact()` call — one-shot.                                                                         |
+| `ControlRoomPowered → ReceiverActivated`      | The receiver finishes booting for the first time (`ReceiverController` reaches `Idle`) — see the Milestone 0.7 note below.      |
+| `ReceiverActivated → PowerNetworkOperational` | Immediately follows, same boot-completion event — still one-shot.                                                               |
 
 Each transition uses `tryAdvancePhase`, so calling it out of order (e.g. the
 generator starting before `GreyboxComplete` is reached, which can't happen
 through normal play but is exercised directly in unit tests) is a silent
 no-op rather than a crash.
+
+## Milestone 0.7 update: the receiver is no longer a one-shot
+
+M0.6's provisional receiver was a single `interact()` call ("activate")
+that fired both `ReceiverActivated` and `PowerNetworkOperational` at once.
+Milestone 0.7 replaces that provisional target with a real tunable
+receiver console (`docs/gameplay/signal-receiver.md`), so the natural
+successor event becomes "the hardware is powered and reachable" — i.e. it
+finishes booting — rather than a single click. This preserves the exact
+meaning `ReceiverActivated`/`PowerNetworkOperational` always had (the
+receiver hardware is live) without redefining it. All wiring lives in
+`src/scenes/facility-greybox/signal/facilityReceiverBindings.ts`.
+
+The deeper tune/detect/lock/decode puzzle Milestone 0.7 actually adds is
+tracked by a **separate**, dedicated phase chain (`SignalProgressionPhase`
+— see `docs/architecture/signal-runtime-state.md`), not appended here —
+this table was already five phases deep into what started as pure
+world-exploration progression; a sixth concern (the receiver puzzle) got
+its own model instead of extending this one further.

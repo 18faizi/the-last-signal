@@ -95,12 +95,13 @@ export class DocumentReaderView implements Disposable {
       meta.textContent = [definition.date, definition.author].filter(Boolean).join(' · ');
       header.append(meta);
     }
-    const blocks = definition.blocks.map((block) => renderBlock(block));
+    const blocks = definition.blocks.map((block) => renderDocumentBlock(block));
     this.article.replaceChildren(header, ...blocks);
   }
 }
 
-function renderBlock(block: DocumentBlock): HTMLElement {
+/** Exported so other read-only document renderers (e.g. TranscriptView) can reuse it. */
+export function renderDocumentBlock(block: DocumentBlock): HTMLElement {
   switch (block.kind) {
     case 'paragraph': {
       const p = document.createElement('p');
