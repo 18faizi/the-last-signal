@@ -129,6 +129,32 @@ import { buildDishAssemblies, type DishAssemblyHandle } from './antenna/buildDis
 import { buildAntennaControls } from './antenna/buildAntennaControls';
 import { buildWaveguideNetwork } from './antenna/buildWaveguideNetwork';
 import { bindFacilityAntenna } from './antenna/facilityAntennaBindings';
+import { aabbContains } from '../../game/facility/FacilityZone';
+import { ThreatController } from '../../game/threat/ThreatController';
+import { ThreatRuntimeState } from '../../game/threat/ThreatRuntimeState';
+import { validateThreatDefinition } from '../../game/threat/ThreatValidation';
+import { ManifestationController } from '../../game/threat/manifestation/ManifestationController';
+import { SoundStimulusRegistry } from '../../game/threat/perception/SoundStimulusRegistry';
+import { HidingController } from '../../game/threat/stealth/HidingController';
+import { HidingSpotRegistry } from '../../game/threat/stealth/HidingSpotRegistry';
+import { SafeZoneRegistry } from '../../game/threat/stealth/SafeZoneRegistry';
+import { validateEventDefinitions } from '../../game/event-director/EventValidation';
+import { HidingSession } from '../../game/interaction/hiding/HidingSession';
+import { HidingOverlay } from '../../ui/threat/HidingOverlay';
+import { DetectionMeterView } from '../../ui/threat/DetectionMeterView';
+import { EncounterStatusView } from '../../ui/threat/EncounterStatusView';
+import { ThreatDebugOverlay } from './overlay/ThreatDebugOverlay';
+import {
+  FACILITY_THREAT_DEFINITION,
+  FACILITY_THREAT_GRAPH,
+  FACILITY_SAFE_ZONES,
+  FACILITY_MANIFESTATIONS,
+  FACILITY_HIDING_SPOTS,
+} from './threat/facilityThreatDefinitions';
+import { FACILITY_THREAT_EVENTS } from './threat/facilityEncounterDefinitions';
+import { buildThreatProps } from './threat/buildThreatManifestation';
+import { buildHidingSpots, type HidingPromptGate } from './threat/buildHidingSpots';
+import { bindFacilityThreat } from './threat/buildThreatEventBindings';
 
 const SPAWN_POSITION = new Vector3(-58, 0.1, 0);
 const SPAWN_YAW = 0; // facing east (+X)
@@ -209,6 +235,33 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     ]);
     const antennaRuntimeState = new AntennaRuntimeState();
 
+    // ----- Threat / stealth / event-director domain (Milestone 0.9) ---------
+    const threatRuntimeState = new ThreatRuntimeState();
+    const stimulusRegistry = new SoundStimulusRegistry();
+    const manifestationController = new ManifestationController();
+    for (const manifestation of FACILITY_MANIFESTATIONS) {
+      manifestationController.register(manifestation);
+    }
+    const hidingSpotRegistry = new HidingSpotRegistry();
+    const hidingController = new HidingController(hidingSpotRegistry);
+    const safeZoneRegistry = new SafeZoneRegistry();
+    for (const safeZone of FACILITY_SAFE_ZONES) {
+      safeZoneRegistry.register(safeZone);
+    }
+    const threatController = new ThreatController({
+      definition: FACILITY_THREAT_DEFINITION,
+      graph: FACILITY_THREAT_GRAPH,
+      stimuli: stimulusRegistry,
+      isDoorPassable: (doorId) => doorRegistry.get(doorId)?.isOpen ?? false,
+      isPositionAllowed: (p) => {
+        for (const zoneId of FACILITY_THREAT_DEFINITION.allowedZoneIds) {
+          const zone = zoneRegistry.get(zoneId);
+          if (zone !== undefined && aabbContains(zone.aabb, p)) return true;
+        }
+        return false;
+      },
+    });
+
     // ----- Register static definitions -------------------------------------
     for (const itemDef of FACILITY_ITEM_DEFS) {
       itemRegistry.register(itemDef);
@@ -260,6 +313,22 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       });
       if (antennaProblems.length > 0) {
         throw new Error(`[AntennaValidator] ${antennaProblems.join('; ')}`);
+      }
+      // Milestone 0.9: threat/stealth/event authored-data validation.
+      const threatProblems = [
+        ...validateThreatDefinition(FACILITY_THREAT_DEFINITION, {
+          graph: FACILITY_THREAT_GRAPH,
+          zoneIds: FACILITY_ZONES.map((z) => z.id),
+          safeZoneIds: FACILITY_SAFE_ZONES.map((z) => z.id),
+          hidingSpotIds: FACILITY_HIDING_SPOTS.map((h) => h.id),
+          checkpointIds: FACILITY_CHECKPOINTS.map((c) => c.id),
+          doorIds: ALL_DOOR_DEFS.map((d) => d.id),
+        }),
+        ...safeZoneRegistry.validate(FACILITY_CHECKPOINTS.map((c) => c.id)),
+        ...validateEventDefinitions(FACILITY_THREAT_EVENTS),
+      ];
+      if (threatProblems.length > 0) {
+        throw new Error(`[ThreatValidator] ${threatProblems.join('; ')}`);
       }
     }
 
@@ -324,6 +393,13 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       waveguideController,
       sourceAnalysisController,
       antennaRuntimeState,
+      threatController,
+      threatRuntimeState,
+      manifestationController,
+      stimulusRegistry,
+      hidingController,
+      hidingSpotRegistry,
+      safeZoneRegistry,
       materials,
       geo,
       devConfig: { isDevelopment: context.environment.isDevelopment },
@@ -383,6 +459,23 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     const powerIndicatorBindings = buildPoweredIndicators(ctx, scene);
     const receiverBindings = bindFacilityReceiver(ctx);
     const antennaBindings = bindFacilityAntenna(ctx);
+
+    // ----- Threat world integration (Milestone 0.9) -------------------------
+    const threatProps = buildThreatProps(ctx, scene);
+    const hidingPromptGate: HidingPromptGate = { enabled: false };
+    const hidingSpotsHandle = buildHidingSpots(
+      ctx,
+      scene,
+      hidingSpotRegistry,
+      threatRuntimeState,
+      hidingPromptGate,
+    );
+    if (context.environment.isDevelopment) {
+      const hidingProblems = hidingSpotRegistry.validate(FACILITY_ZONES.map((z) => z.id));
+      if (hidingProblems.length > 0) {
+        throw new Error(`[ThreatValidator] ${hidingProblems.join('; ')}`);
+      }
+    }
 
     context.onPhysicsReady();
 
@@ -455,6 +548,12 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       context.canvas,
     );
 
+    // ----- Threat / hiding UI (Milestone 0.9) -------------------------------
+    const hidingOverlayView = new HidingOverlay(context.overlayParent);
+    const detectionMeterView = new DetectionMeterView(context.overlayParent);
+    const encounterStatusView = new EncounterStatusView(context.overlayParent);
+    const hidingSession = new HidingSession(scene, hidingController, controller, hidingOverlayView);
+
     // Inventory events → pickup notifications.
     const unsubInventory = inventory.subscribe((event) => {
       if (event.kind === 'item-added') {
@@ -496,6 +595,26 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       powerPanel: powerPanelSession,
       receiverPanel: receiverPanelSession,
       antennaPanel: antennaPanelSession,
+      hidingSession,
+    });
+
+    // ----- Threat / event-director bindings (Milestone 0.9) -----------------
+    const threatBindings = bindFacilityThreat({
+      ctx,
+      scene,
+      player: controller,
+      interaction,
+      threatController,
+      threatRuntimeState,
+      manifestationController,
+      stimuli: stimulusRegistry,
+      hidingController,
+      hidingSession,
+      safeZones: safeZoneRegistry,
+      props: threatProps,
+      detectionMeter: detectionMeterView,
+      encounterStatus: encounterStatusView,
+      hidingPromptGate,
     });
 
     // ----- Dev overlays (F7, F8, F9) ---------------------------------------
@@ -581,6 +700,27 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       removeAntennaDebugListener = context.input.onAction((action) => {
         if (action === InputAction.ToggleAntennaDebug) {
           antennaDebugOverlay?.toggle();
+        }
+      });
+    }
+
+    // F1 threat/stealth debug overlay (dev only)
+    let threatDebugOverlay: ThreatDebugOverlay | null = null;
+    let removeThreatDebugListener: (() => void) | null = null;
+    if (context.environment.isDevelopment) {
+      threatDebugOverlay = new ThreatDebugOverlay(
+        context.overlayParent,
+        scene,
+        threatController,
+        FACILITY_THREAT_GRAPH,
+        hidingSpotRegistry,
+        safeZoneRegistry,
+        stimulusRegistry,
+        threatBindings,
+      );
+      removeThreatDebugListener = context.input.onAction((action) => {
+        if (action === InputAction.ToggleThreatDebug) {
+          threatDebugOverlay?.toggle();
         }
       });
     }
@@ -838,6 +978,45 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         };
         b['runSourceAnalysisComparison'] = () => sourceAnalysisController.runComparison();
 
+        // ----- Milestone 0.9: threat/stealth/event-director test surface ----
+        // Read-only snapshots + movement/positioning assists ONLY — the
+        // bridge can never set threat state, suspicion, detection, event
+        // completion or encounter completion directly (real systems only).
+        b['getThreatSnapshot'] = () => threatController.getSnapshot();
+        b['getThreatRuntimeSnapshot'] = () => threatRuntimeState.getSnapshot();
+        b['getManifestationSnapshot'] = () => manifestationController.getSnapshot();
+        b['getEventDirectorSnapshot'] = () => threatBindings.director.getSnapshot();
+        b['getHidingState'] = () => ({
+          ...hidingController.getConcealment(),
+          promptsEnabled: hidingPromptGate.enabled,
+          occupiedSpotId: hidingSpotRegistry.occupiedSpotId,
+        });
+        b['listHidingSpots'] = () => hidingSpotRegistry.getAll().map((h) => h.id);
+        b['getSafeZoneState'] = () => {
+          const snap = controller.getDebugSnapshot();
+          return {
+            inside: safeZoneRegistry.isInsideAny(snap.position),
+            zoneId: safeZoneRegistry.zoneContaining(snap.position)?.id ?? null,
+          };
+        };
+        b['getStimulusCount'] = () => stimulusRegistry.activeCount;
+        b['getThreatDevMessages'] = () => [...threatBindings.getDevMessages()];
+        b['enterHidingSpot'] = (spotId: string) => interaction.devActivate(spotId);
+        // Movement/positioning assist for headless CI (like teleportTo, but
+        // to an arbitrary point — never sets any threat/perception state).
+        b['teleportToPosition'] = (x: number, y: number, z: number, yaw: number) => {
+          controller.teleportTo(new Vector3(x, y, z), yaw);
+          return true;
+        };
+        b['leaveHidingSpot'] = () => {
+          hidingSession.close();
+          return true;
+        };
+        b['resetThreat'] = () => {
+          threatBindings.resetAll();
+          return true;
+        };
+
         b['resetFacility'] = () => {
           facilityState.reset();
           powerNetwork.reset();
@@ -865,6 +1044,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
             );
           }
           emergencyPower.initializeEmergencyPower();
+          threatBindings.resetAll();
           controller.teleportTo(SPAWN_POSITION, SPAWN_YAW);
         };
       }
@@ -880,6 +1060,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       powerDebugOverlay?.tick();
       signalDebugOverlay?.tick();
       antennaDebugOverlay?.tick();
+      threatDebugOverlay?.tick();
 
       // Read motor's foot position without allocating.
       const motorState = (
@@ -939,7 +1120,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
 
     return {
       scene,
-      markerText: 'Milestone 0.8 — Antenna Alignment',
+      markerText: 'Milestone 0.9 — Threat Foundation',
       getDebugFields: () => {
         const snap = facilityState.getSnapshot();
         const genSnap = generatorController.snapshot;
@@ -990,6 +1171,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           ),
           ['Antenna phase', antennaRuntimeState.antennaPhase],
           ['Antenna reveal', antennaRuntimeState.isRevealComplete ? 'COMPLETE' : 'pending'],
+          ...threatBindings.getDebugFields(),
         ];
       },
       dispose(): void {
@@ -1031,6 +1213,19 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
             delete b['collectSourceSample'];
             delete b['runSourceAnalysisComparison'];
             delete b['resetFacility'];
+            delete b['getThreatSnapshot'];
+            delete b['getThreatRuntimeSnapshot'];
+            delete b['getManifestationSnapshot'];
+            delete b['getEventDirectorSnapshot'];
+            delete b['getHidingState'];
+            delete b['listHidingSpots'];
+            delete b['getSafeZoneState'];
+            delete b['getStimulusCount'];
+            delete b['getThreatDevMessages'];
+            delete b['enterHidingSpot'];
+            delete b['teleportToPosition'];
+            delete b['leaveHidingSpot'];
+            delete b['resetThreat'];
           }
         }
 
@@ -1043,6 +1238,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         removePowerDebugListener?.();
         removeSignalDebugListener?.();
         removeAntennaDebugListener?.();
+        removeThreatDebugListener?.();
 
         if (zoneObserver !== null) {
           scene.onBeforeRenderObservable.remove(zoneObserver);
@@ -1054,6 +1250,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         unsubSignalCounters();
         receiverBindings.dispose();
         antennaBindings.dispose();
+        threatBindings.dispose();
         dishAssemblies.dispose();
         for (const binding of powerIndicatorBindings) {
           binding.dispose();
@@ -1063,10 +1260,17 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         powerDebugOverlay?.dispose();
         signalDebugOverlay?.dispose();
         antennaDebugOverlay?.dispose();
+        threatDebugOverlay?.dispose();
         teleportMenu?.dispose();
         powerPanelSession.dispose();
         receiverPanelSession.dispose();
         antennaPanelSession.dispose();
+        hidingSession.dispose();
+        hidingSpotsHandle.dispose();
+        threatProps.dispose();
+        detectionMeterView.dispose();
+        encounterStatusView.dispose();
+        hidingOverlayView.dispose();
         distributionPanelView.dispose();
         receiverPanelView.dispose();
         antennaPanelView.dispose();
@@ -1099,6 +1303,12 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         antennaController.dispose();
         waveguideController.dispose();
         sourceAnalysisController.dispose();
+        threatController.dispose();
+        manifestationController.dispose();
+        stimulusRegistry.dispose();
+        hidingController.dispose();
+        hidingSpotRegistry.clear();
+        safeZoneRegistry.clear();
 
         geo.dispose();
         materials.dispose();

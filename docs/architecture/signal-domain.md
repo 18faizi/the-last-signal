@@ -67,3 +67,10 @@ conflated. `SignalDefinition.antennaAlignmentId` (a placeholder field
 added in M0.7) ended up unused by M0.8's actual implementation — antenna
 prerequisites are tracked by a separate progression chain instead; see the
 field's own doc comment.
+
+Nothing in `src/game/signal/` changed for Milestone 0.9 either. The threat
+layer observes the receiver only through its existing typed events: the
+event director's `signal-decoded` condition uses
+`ReceiverController.isDecoded()`, and `DecodeCompleted` is translated into
+a `signal-activity` sound stimulus at the console's authored position by a
+narrow subscription in `buildThreatEventBindings.ts`.

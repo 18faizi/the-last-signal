@@ -4,7 +4,7 @@ A browser-based atmospheric first-person mystery game set inside an abandoned
 telecommunications relay station in northern Pakistan. Built with Babylon.js
 and TypeScript.
 
-## Current milestone: 0.8 — Antenna Alignment
+## Current milestone: 0.9 — Threat Foundation
 
 Milestones 0.1–0.4 established the engine foundation, first-person controller,
 interaction framework, and the door/lock/key/inventory system. Milestone 0.5
@@ -42,6 +42,21 @@ per-array bearing profiles feeding a cross-array comparison, a dedicated
 tooling. See `docs/gameplay/antenna-alignment.md` and
 `docs/architecture/antenna-domain.md`.
 
+Milestone 0.9 adds the threat foundation: a restrained reactive threat
+presence with a 12-state actor machine, a pure deterministic perception
+model (vision cone + lighting exposure + typed sound stimuli + two-stage
+suspicion/detection), an authored nav-graph behavior model (investigation,
+deterministic search, one controlled pursuit, capture = fade + encounter
+checkpoint reset — no combat/health/death screens), staged manifestations
+separate from the actor (pooled silhouette), a hiding/stealth system wired
+through the central interaction-mode table (`[E] HIDE`), typed safe zones,
+a typed authored event director (Events A-D, no string scripting), one
+complete non-combat encounter in the control building, a dedicated fifth
+progression chain (`ThreatProgressionPhase`/`ThreatRuntimeState`, gated on
+the M0.8 reveal), and F1 threat debug tooling. See
+`docs/gameplay/threat-presence.md`, `docs/gameplay/first-threat-encounter.md`
+and `docs/architecture/threat-domain.md`.
+
 ### Controls (facility greybox scene)
 
 Click the canvas to capture the mouse (Esc releases). `WASD` move ·
@@ -50,13 +65,14 @@ Click the canvas to capture the mouse (Esc releases). `WASD` move ·
 tuning controls while the receiver panel is open) · `F7` respawn to spawn ·
 `F8` teleport menu (dev) · `F9` facility debug overlay (dev) · `F10` power
 network debug overlay (dev) · `F11` signal/receiver debug overlay (dev) ·
-`F2` antenna/bearing debug overlay (dev) · `` ` ``/`F3` engine debug
+`F2` antenna/bearing debug overlay (dev) · `F1` threat/stealth debug
+overlay (dev) · `` ` ``/`F3` engine debug
 overlay (dev) · `F4` player debug (dev) · `F6` interaction-ray debug (dev).
 While the receiver panel is open: `Up/Down` (or `W/S`) select a control
 row, `Left/Right` (or `A/D`, hold `Shift` for fine adjustment) adjust it,
 mouse wheel adjusts the selected row, `Enter/Space` toggles scan (or opens
 the transcript once decoded), `Escape` closes the panel (or just the
-transcript, if open). While the antenna panel is open: `W/S` select a row
+transcript, if open). While hiding: `E` leaves the hiding place. While the antenna panel is open: `W/S` select a row
 (array/azimuth/elevation/polarization), `A/D` (`Shift` for fine) adjust
 it, `Enter` collects a source-analysis sample (or runs the comparison once
 all 3 are collected), `R` parks the selected array, `Space` emergency
@@ -150,12 +166,21 @@ included `vercel.json`. See `docs/production/deployment.md`.
   evaluator combining M0.7's receiver quality with M0.8's antenna/
   waveguide/power quality, and a dedicated `AntennaProgressionPhase`/
   `AntennaRuntimeState` — see `docs/architecture/antenna-domain.md`.
+- `src/game/threat/`, `src/game/event-director/` — pure-TypeScript threat
+  domain (Milestone 0.9): the 12-state actor machine, deterministic
+  perception (vision/exposure/sound/suspicion), authored nav-graph behavior,
+  manifestations, hiding/safe-zone stealth data, `ThreatRuntimeState`, and
+  the typed authored event director — see
+  `docs/architecture/threat-domain.md` and
+  `docs/architecture/event-director.md`.
 - `src/ui/` — DOM loading screen, fatal-error screen, inventory viewer,
   (`src/ui/power/`) the distribution panel dialog and compact power/generator
   status widgets, (`src/ui/signal/`) the receiver panel, canvas
   spectrum/waveform visualizations, and transcript reader, and
   (`src/ui/antenna/`) the antenna control panel, alignment meters,
-  waveguide status, bearing display, and source-analysis view.
+  waveguide status, bearing display, and source-analysis view, and
+  (`src/ui/threat/`) the detection meter, hiding overlay, and encounter
+  status (fade/reset/completion) views.
 
 Details in `docs/architecture/`.
 
@@ -170,9 +195,8 @@ Details in `docs/architecture/`.
 
 ## Next milestone boundary
 
-Milestone 0.9 — not yet started. The antenna alignment, waveguide
-routing, and source-bearing-analysis reveal from 0.8 (deliberately scoped
-to the "no valid external bearing / local loop" classification only — no
-threat AI, no endings, no final story content, no final audio, no save
-persistence) are the stable foundation the next content pass will build
-on.
+Milestone 1.0 — not yet started. The threat foundation from 0.9
+(deliberately scoped to ONE complete non-combat encounter with a
+restrained, confined threat — no endings, no final narrative content, no
+save persistence, no final art/audio, no full-facility threat roaming) is
+the stable base the final content pass will build on.

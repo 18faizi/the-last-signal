@@ -49,4 +49,12 @@ export const FACILITY_CHECKPOINTS: readonly CheckpointDefinition[] = [
     spawnPosition: { x: 24, y: 0.1, z: -14 },
     spawnYaw: 0,
   },
+  {
+    // Milestone 0.9: activated by the event director when the first
+    // encounter begins; encounter failure returns the player here.
+    id: 'fg-cp-encounter-start',
+    label: 'Control Room (Encounter)',
+    spawnPosition: { x: -2, y: 0.1, z: 19 },
+    spawnYaw: Math.PI, // facing south toward the lobby doorway
+  },
 ];

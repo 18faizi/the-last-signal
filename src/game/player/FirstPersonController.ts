@@ -231,11 +231,14 @@ export class FirstPersonController implements Disposable {
 
   /**
    * Teleport the player to an arbitrary world position and look direction.
-   * Development-only; used by the F8 teleport menu in the facility scene.
+   * Used by the F8 dev teleport menu and by gameplay systems that must
+   * relocate the player exactly (hiding entry/exit, encounter reset). The
+   * optional pitch (default 0, the historical behavior) lets the hiding
+   * session restore the pre-hide view EXACTLY on exit.
    */
-  teleportTo(position: Vector3, yaw: number): void {
+  teleportTo(position: Vector3, yaw: number, pitch = 0): void {
     this.motor.respawn(position);
-    this.cameraRig.setLook(yaw, 0);
+    this.cameraRig.setLook(yaw, pitch);
   }
 
   getDebugSnapshot(): PlayerDebugSnapshot {

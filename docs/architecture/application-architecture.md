@@ -135,3 +135,21 @@ subscriptions — never a merged enum. See `antenna-domain.md`,
 `bearing-analysis.md`, `antenna-runtime-state.md`, and
 `antenna-validation.md` for the full domain-layer breakdown, and
 `docs/development/antenna-panel.md` for how the DOM UI layer observes it.
+
+`FacilityGreyboxScene.ts` (Milestone 0.9) additionally wires the threat
+domain: `ThreatController`, `ThreatRuntimeState`, `ManifestationController`,
+`SoundStimulusRegistry`, `HidingController`/`HidingSpotRegistry`,
+`SafeZoneRegistry` (all Babylon-free) plus the `EventDirector`, composed by
+`src/scenes/facility-greybox/threat/buildThreatEventBindings.ts` following
+the `facilityAntennaBindings.ts` pattern. `InteractionTarget` gained a
+`'hiding'` kind and `InteractionMode` a `'hiding'` mode (the
+`'panel'`/`'receiver'`/`'antenna'` precedent). FIVE progression chains now
+coexist (facility `ProgressionPhase` with its embedded power milestones,
+`SignalProgressionPhase`, `AntennaProgressionPhase`,
+`ThreatProgressionPhase`), integrated only via explicit prerequisite checks
+and typed event subscriptions — never a merged enum. Per-frame threat cost
+is strictly scoped: one heavy observer exists only while the threat actor
+or a manifestation is active (cadenced LOS raycast with one reused ray,
+perception, kinematic actor transform); a dormant threat costs an
+always-on observer doing only director-clock/delay arithmetic and fixture
+blinking. See `threat-domain.md` and `event-director.md`.

@@ -71,3 +71,14 @@ deterministic, frame-rate-independent tick driven by real delta time
 (clamped per tick to `MAX_ANTENNA_DT_SECONDS`), with exact-snap arrival
 that cannot accumulate floating-point drift across repeated operations
 (verified by `antennaController.test.ts`).
+
+## Milestone 0.9: the reveal as the threat gate
+
+Nothing in `src/game/antenna/` changed for Milestone 0.9. The threat
+foundation is gated on this domain's terminal fact: the bindings advance
+the (separate, fifth) `ThreatProgressionPhase` chain to
+`AntennaAftermathPending` from `AntennaRuntimeState`'s typed completion
+event, and the event director's `antenna-reveal-complete` condition reads
+`isRevealComplete` through a narrow callback. Antenna `SampleCollected`/
+`AnalysisResolved` events additionally emit `signal-activity` sound
+stimuli via a subscription in `buildThreatEventBindings.ts`.

@@ -47,7 +47,7 @@ test('application boots to the facility-greybox scene without errors', async ({ 
 
   // The development-ready marker is shown.
   await expect(page.getByTestId('ready-marker')).toBeVisible();
-  await expect(page.getByTestId('ready-marker')).toHaveText('Milestone 0.8 — Antenna Alignment');
+  await expect(page.getByTestId('ready-marker')).toHaveText('Milestone 0.9 — Threat Foundation');
 
   // Debug overlay toggles on via the backquote shortcut and shows live data.
   await page.keyboard.press('Backquote');

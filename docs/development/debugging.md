@@ -154,3 +154,22 @@ The test bridge gained `getAntennaSnapshot()`, `getAntennaRuntimeSnapshot()`,
 `setPolarization`/`park`/`emergencyStop`), `selectAntennaArray(arrayId)`,
 `cycleWaveguidePort(pathId)`, `collectSourceSample()`, and
 `runSourceAnalysisComparison()`.
+
+## Milestone 0.9 additions
+
+See `threat-debugging.md` for the full breakdown. In short: `F1` toggles
+the threat/stealth debug overlay (`ThreatDebugOverlay` — DOM panel plus
+lazily-built 3D markers for the nav graph, hiding spots, safe zones, LOS
+line and last-known position; all non-pickable, physics-free, disposed on
+hide, never constructed in production). F1 was the last unclaimed safe
+function key (F5 = refresh, F12 = devtools stay off-limits); every earlier
+debug key (F2/F3/F4/F6/F7/F8/F9/F10/F11) is preserved unchanged. The F3
+overlay gained compact threat rows (state, phase, encounter, suspicion,
+detection, exposure, LOS, last-known, route node, behavior, hiding,
+safe-zone, manifestation, fired events, encounter-done). `resetFacility()`
+now also runs the full threat reset (`resetAll`: controller, runtime
+state, manifestations, stimuli, director, hiding, prompt gate, fixtures,
+UI). The test bridge gained the read-only threat surface plus the
+movement assists documented in `threat-debugging.md` — and deliberately NO
+setter for threat state, suspicion, detection or event/encounter
+completion.

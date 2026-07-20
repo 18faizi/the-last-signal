@@ -437,3 +437,32 @@ Repetition/lifecycle counts (panel open/close ×10, array selection +
 movement ×20, dev reset ×3, F2 toggle ×20) are scaled down from the
 spec's suggested 30/100/5/20 given real generator-startup setup cost per
 session — same documented precedent as M0.7's dev-reset ×3.
+
+## Milestone 0.9: threat foundation browser tests
+
+`tests/e2e/threat.spec.ts` follows the same shared-session/bridge
+discipline as `antenna.spec.ts`, with one stricter rule stated in its
+header: the bridge NEVER sets threat state, suspicion, detection, event
+completion or encounter completion. It performs setup shortcuts
+(generator/circuits/decode/antenna alignment — real domain actions),
+movement/positioning assists (`teleportTo`/`teleportToPosition`) and
+read-only snapshots; every threat outcome flows through the real
+perception model. Detection is provoked with REAL key presses (footstep
+stimuli + the real vision/LOS integration) via a retrying helper that
+repositions the player inside the threat's forward cone — the threat
+keeps moving, so a single fixed placement is not reliable under degraded
+SwiftShader frame pacing.
+
+The shared serial session covers spec sections 46-48 in one expensive
+bring-up: the full real progression (generator → circuits → decode →
+antenna reveal), Events A→B→C, real sound-driven investigation, fully
+hidden avoidance with exact transform restore, the one detection/pursuit,
+capture → `ENCOUNTER RESET` → checkpoint retry with all major progression
+verified preserved, the safe-zone resolution, completion one-shot + no
+replay + no double-fired events, hide/exit repetition (6 cycles — scaled
+down from a nominal 10; the whole session already pays the full
+progression cost once, same documented reduction precedent as M0.7/M0.8)
+and repeated dev-reset stability. Cheap standalone tests cover the
+dormant zero-cost guarantee, director inertness pre-reveal, hiding-prompt
+gating, F1 toggling, hidden-by-default UI, and dev-reset stability on an
+untouched scene.

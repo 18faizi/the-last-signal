@@ -33,6 +33,12 @@ export enum InputAction {
    * Deliberately NOT F12 — F12 conflicts with browser devtools.
    */
   ToggleAntennaDebug = 'toggle-antenna-debug',
+  /**
+   * F1: toggle the threat/stealth debug overlay (facility scene only).
+   * F1 was the last unclaimed safe function key (F5 = refresh, F12 =
+   * devtools are both permanently off-limits).
+   */
+  ToggleThreatDebug = 'toggle-threat-debug',
 }
 
 /** Maps KeyboardEvent.code values to actions. */
@@ -62,6 +68,7 @@ export const DEFAULT_BINDINGS: InputBindings = {
   F10: InputAction.TogglePowerDebug,
   F11: InputAction.ToggleSignalDebug,
   F2: InputAction.ToggleAntennaDebug,
+  F1: InputAction.ToggleThreatDebug,
 };
 
 /** Human-readable key label for prompts, e.g. 'KeyE' → 'E'. */

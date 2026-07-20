@@ -30,6 +30,7 @@ import {
   isPanelTarget,
   isReceiverTarget,
   isAntennaTarget,
+  isHidingTarget,
   AVAILABLE,
 } from './InteractionTarget';
 import type { InspectionController } from './inspection/InspectionController';
@@ -62,6 +63,14 @@ export interface AntennaPanelControls {
   readonly isOpen: boolean;
 }
 
+/** Hiding session contract (Milestone 0.9) — see HidingSession. */
+export interface HidingControls {
+  /** Returns false when the spot is unknown/occupied or entry fails. */
+  open(hidingSpotId: string, onClose: () => void): boolean;
+  close(): void;
+  readonly isOpen: boolean;
+}
+
 export interface InteractionSystemDeps {
   readonly scene: Scene;
   readonly player: FirstPersonController;
@@ -83,6 +92,8 @@ export interface InteractionSystemDeps {
   readonly receiverPanel?: ReceiverPanelControls | null;
   /** Antenna control panel overlay (opened via an 'antenna'-kind target); null when not provided. */
   readonly antennaPanel?: AntennaPanelControls | null;
+  /** Hiding session (entered via a 'hiding'-kind target); null when not provided. */
+  readonly hidingSession?: HidingControls | null;
 }
 
 /** Plain-data snapshot for the debug overlay and test bridge. */
@@ -265,6 +276,7 @@ export class InteractionSystem implements Disposable {
     this.deps.powerPanel?.close();
     this.deps.receiverPanel?.close();
     this.deps.antennaPanel?.close();
+    this.deps.hidingSession?.close();
   }
 
   dispose(): void {
@@ -330,6 +342,21 @@ export class InteractionSystem implements Disposable {
         this.transition('gameplay');
       }
       this.interactQueued = false;
+      return;
+    }
+
+    if (this.mode === 'hiding') {
+      const session = this.deps.hidingSession;
+      if (session === undefined || session === null || !session.isOpen) {
+        this.transition('gameplay');
+        this.interactQueued = false;
+        return;
+      }
+      // "[E] LEAVE HIDING PLACE": the same edge-queued interact key exits.
+      if (this.interactQueued) {
+        this.interactQueued = false;
+        session.close();
+      }
       return;
     }
 
@@ -538,6 +565,24 @@ export class InteractionSystem implements Disposable {
       }
       return;
     }
+    if (isHidingTarget(target)) {
+      const session = this.deps.hidingSession;
+      if (session === undefined || session === null) {
+        this.execute(target);
+        return;
+      }
+      this.transition('transitioning');
+      const opened = session.open(target.hidingSpotId, () => {
+        // Closed via the session's own controls; per-frame update returns
+        // us to gameplay mode.
+      });
+      if (opened) {
+        this.enterOverlayMode('hiding');
+      } else {
+        this.transition('gameplay');
+      }
+      return;
+    }
     this.execute(target);
   }
 
@@ -567,7 +612,7 @@ export class InteractionSystem implements Disposable {
   }
 
   private enterOverlayMode(
-    mode: 'inspecting' | 'reading' | 'power-panel' | 'receiver' | 'antenna-panel',
+    mode: 'inspecting' | 'reading' | 'power-panel' | 'receiver' | 'antenna-panel' | 'hiding',
   ): void {
     this.transition(mode);
     this.cancelHoldIfActive();

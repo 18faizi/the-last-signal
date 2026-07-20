@@ -7,13 +7,14 @@ booleans:
 ```
 gameplay      → holding | transitioning | inventory
 holding       → gameplay
-transitioning → inspecting | reading | power-panel | receiver | antenna-panel | gameplay
+transitioning → inspecting | reading | power-panel | receiver | antenna-panel | hiding | gameplay
 inspecting    → gameplay
 reading       → gameplay
 inventory     → gameplay
 power-panel   → gameplay
 receiver      → gameplay
 antenna-panel → gameplay
+hiding        → gameplay
 ```
 
 - **gameplay** — focus raycasting, prompts, press/hold input live here.
@@ -77,3 +78,12 @@ current mode.
 
 Focus is modeled separately (`FocusStability.ts`) — it is a property of
 gameplay/holding, not a machine state.
+
+- **hiding** (M0.9) — entered through `transitioning` by activating a
+  `'hiding'`-kind target (`isHidingTarget()`, `[E] HIDE`), routed to
+  `HidingSession.open(spotId, onClose)` exactly like the panel sessions.
+  While in `hiding` mode, the per-frame branch consumes the edge-queued
+  interact key as `[E] LEAVE HIDING PLACE` (calling `session.close()`), and
+  everything else — inventory, receiver, power panel, antenna panel,
+  reading, inspection, doors — is unreachable BY CONSTRUCTION: none of them
+  is a legal successor of `hiding` in the table.

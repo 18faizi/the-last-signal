@@ -7,7 +7,15 @@ export type InteractionTargetId = string;
 
 /** How pressing the interaction key behaves for a target. */
 export type TargetInteractionKind =
-  'immediate' | 'hold' | 'inspect' | 'read' | 'panel' | 'receiver' | 'antenna' | 'disabled';
+  | 'immediate'
+  | 'hold'
+  | 'inspect'
+  | 'read'
+  | 'panel'
+  | 'receiver'
+  | 'antenna'
+  | 'hiding'
+  | 'disabled';
 
 export interface InteractionPromptSpec {
   /** Action verb shown in the prompt, e.g. "USE", "INSPECT", "READ". */
@@ -117,4 +125,14 @@ export interface AntennaTarget extends InteractionTarget {
 
 export function isAntennaTarget(target: InteractionTarget): target is AntennaTarget {
   return target.kind === 'antenna';
+}
+
+/** Targets that enter the hiding mode ("[E] HIDE" — Milestone 0.9). */
+export interface HidingTarget extends InteractionTarget {
+  readonly kind: 'hiding';
+  readonly hidingSpotId: string;
+}
+
+export function isHidingTarget(target: InteractionTarget): target is HidingTarget {
+  return target.kind === 'hiding';
 }

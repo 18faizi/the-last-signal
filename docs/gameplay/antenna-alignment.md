@@ -53,3 +53,11 @@ command.
 
 See also: `microwave-array-selection.md`, `waveguide-routing.md`,
 `source-bearing-analysis.md`.
+
+## After the reveal (Milestone 0.9)
+
+Resolving the source analysis — the confirmation that the transmission has
+no valid external bearing — is no longer the end of the line: it arms the
+facility's reactive threat sequence. Expect the rooftop warning light to
+behave strangely on your way down. See `threat-presence.md` and
+`first-threat-encounter.md`.

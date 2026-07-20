@@ -94,3 +94,15 @@ polling `PowerNetwork` directly. Power loss routes every registered array
 to `Offline` and freezes (never discards) in-flight mechanical positions —
 see `antenna-state-model.md`. Nothing in `src/game/power/` changed for
 Milestone 0.8.
+
+## Milestone 0.9: power state as a perception input and event condition
+
+Nothing in `src/game/power/` changed for Milestone 0.9 either. The threat
+layer consumes power state strictly through the existing public surface:
+the event director's `circuit-energized` condition queries
+`PowerNetwork.isCircuitEnergized()` via a narrow context callback, the
+exposure model reads the control-room circuit's energized state (powered
+zones = higher visual exposure; unpowered = concealment), and the
+generator's `GeneratorStarted` event is translated into one large authored
+sound stimulus by a subscription in `buildThreatEventBindings.ts` — the
+generator itself is untouched.

@@ -13,7 +13,8 @@ and look are suspended while **any** token is held (`InputLockSet`,
 - two locks with the same reason are still independent.
 
 Reasons (`inspection` | `document` | `transition` | `inventory` |
-`power-panel` | `receiver` | `antenna-panel`) are labels for debugging
+`power-panel` | `receiver` | `antenna-panel` | `hiding` |
+`encounter-reset`) are labels for debugging
 (shown in the debug overlay), not keys. `power-panel` (M0.6) is
 acquired/released by `PowerPanelSession`
 (`src/game/interaction/power/PowerPanelSession.ts`), which mirrors
@@ -28,7 +29,15 @@ never the reverse). `antenna-panel` (M0.8) is acquired/released by
 `AntennaPanelSession`
 (`src/game/interaction/antenna/AntennaPanelSession.ts`), which mirrors
 `ReceiverPanelSession` exactly — same acquire-on-open/release-on-close
-shape, same one-directional close flow.
+shape, same one-directional close flow. `hiding` (M0.9) is
+acquired/released by `HidingSession`
+(`src/game/interaction/hiding/HidingSession.ts`): acquire on entering a
+hiding spot, park the collider at the spot's authored interior position,
+glide the camera, and on exit restore the saved transform EXACTLY
+(position, yaw and pitch — `teleportTo` gained an optional pitch parameter
+for this) before releasing the lock; the release clears stale pressed keys
+and buffered edge actions per the controller contract, so leaving a hiding
+place never resumes movement unexpectedly.
 
 ## What suspension does
 

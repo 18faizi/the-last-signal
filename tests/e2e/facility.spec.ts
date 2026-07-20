@@ -89,7 +89,7 @@ test('facility scene boots and shows milestone marker', async ({ page }) => {
   const errors = { console: [] as string[], page: [] as string[] };
   await boot(page, errors);
 
-  await expect(page.getByTestId('ready-marker')).toHaveText('Milestone 0.8 — Antenna Alignment');
+  await expect(page.getByTestId('ready-marker')).toHaveText('Milestone 0.9 — Threat Foundation');
   expect(errors.console).toHaveLength(0);
   expect(errors.page).toHaveLength(0);
 });

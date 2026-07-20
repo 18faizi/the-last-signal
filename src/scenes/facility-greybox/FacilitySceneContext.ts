@@ -28,6 +28,13 @@ import type { AntennaController } from '../../game/antenna/AntennaController';
 import type { AntennaRuntimeState } from '../../game/antenna/AntennaRuntimeState';
 import type { WaveguideController } from '../../game/waveguide/WaveguideController';
 import type { SourceAnalysisController } from '../../game/source-analysis/SourceAnalysisController';
+import type { ThreatController } from '../../game/threat/ThreatController';
+import type { ThreatRuntimeState } from '../../game/threat/ThreatRuntimeState';
+import type { ManifestationController } from '../../game/threat/manifestation/ManifestationController';
+import type { SoundStimulusRegistry } from '../../game/threat/perception/SoundStimulusRegistry';
+import type { HidingController } from '../../game/threat/stealth/HidingController';
+import type { HidingSpotRegistry } from '../../game/threat/stealth/HidingSpotRegistry';
+import type { SafeZoneRegistry } from '../../game/threat/stealth/SafeZoneRegistry';
 import type { FacilityMaterials } from './FacilityMaterials';
 import type { FacilityGeometryHelper } from './FacilityGeometryHelper';
 
@@ -77,6 +84,15 @@ export interface FacilitySceneContext {
   readonly waveguideController: WaveguideController;
   readonly sourceAnalysisController: SourceAnalysisController;
   readonly antennaRuntimeState: AntennaRuntimeState;
+
+  // Threat / stealth / event-director domain (Milestone 0.9)
+  readonly threatController: ThreatController;
+  readonly threatRuntimeState: ThreatRuntimeState;
+  readonly manifestationController: ManifestationController;
+  readonly stimulusRegistry: SoundStimulusRegistry;
+  readonly hidingController: HidingController;
+  readonly hidingSpotRegistry: HidingSpotRegistry;
+  readonly safeZoneRegistry: SafeZoneRegistry;
 
   // Shared resources
   readonly materials: FacilityMaterials;

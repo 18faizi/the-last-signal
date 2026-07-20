@@ -13,7 +13,9 @@ export type InputSuspensionReason =
   | 'inventory'
   | 'power-panel'
   | 'receiver'
-  | 'antenna-panel';
+  | 'antenna-panel'
+  | 'hiding'
+  | 'encounter-reset';
 
 export interface InputLockToken {
   readonly reason: InputSuspensionReason;
