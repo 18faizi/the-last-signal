@@ -155,6 +155,23 @@ import { FACILITY_THREAT_EVENTS } from './threat/facilityEncounterDefinitions';
 import { buildThreatProps } from './threat/buildThreatManifestation';
 import { buildHidingSpots, type HidingPromptGate } from './threat/buildHidingSpots';
 import { bindFacilityThreat } from './threat/buildThreatEventBindings';
+import { GameFlowState } from '../../game/flow/GameFlowState';
+import type { EndingPathway, GameChapterId } from '../../game/flow/GameChapter';
+import { ObjectiveController } from '../../game/objectives/ObjectiveController';
+import { ObjectiveHUDView } from '../../ui/objectives/ObjectiveHUDView';
+import { HintController } from '../../game/hints/HintController';
+import { NarrativeFactRegistry } from '../../game/narrative/NarrativeFactRegistry';
+import { CheckpointSnapshotManager } from '../../game/checkpoint/CheckpointSnapshotManager';
+import { FinalDecisionController } from '../../game/decision/FinalDecisionController';
+import { FinalDecisionView } from '../../ui/decision/FinalDecisionView';
+import { EndingSequenceController } from '../../game/endings/EndingSequenceController';
+import { EndingCinematicView } from '../../ui/endings/EndingCinematicView';
+import { PostEndingView } from '../../ui/endings/PostEndingView';
+import { RestartController } from '../../game/flow/RestartController';
+import { GameStartOverlay } from '../../ui/start/GameStartOverlay';
+import { GameFlowDebugOverlay } from '../../ui/debug/GameFlowDebugOverlay';
+import { buildCommandTerminal } from './decision/buildCommandTerminal';
+import type { InputLockToken } from '../../game/player/InputLock';
 
 const SPAWN_POSITION = new Vector3(-58, 0.1, 0);
 const SPAWN_YAW = 0; // facing east (+X)
@@ -261,6 +278,19 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         return false;
       },
     });
+
+    // ----- Milestone 1.0: Flow, narrative, objectives, hints, checkpoints, endings ---
+    const gameFlowState = new GameFlowState();
+    const narrativeRegistry = new NarrativeFactRegistry();
+    const objectiveController = new ObjectiveController();
+    const hintController = new HintController({
+      devSpeedupMultiplier: context.environment.isDevelopment ? 5.0 : 1.0,
+    });
+    const checkpointSnapshotManager = new CheckpointSnapshotManager();
+    const finalDecisionController = new FinalDecisionController(narrativeRegistry);
+    const endingSequenceController = new EndingSequenceController();
+    const restartController = new RestartController();
+    let openFinalDecisionHandler: () => void = () => {};
 
     // ----- Register static definitions -------------------------------------
     for (const itemDef of FACILITY_ITEM_DEFS) {
@@ -442,6 +472,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     buildRooftopAntennaDeck(ctx, scene);
     buildDistributionPanel(ctx, scene);
     buildReceiverConsole(ctx, scene);
+    buildCommandTerminal(ctx, scene, () => openFinalDecisionHandler());
     buildAntennaControls(ctx, scene);
     buildWaveguideNetwork(ctx, scene);
     const dishAssemblyPositions = new Map<string, Vector3>([
@@ -616,6 +647,348 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       encounterStatus: encounterStatusView,
       hidingPromptGate,
     });
+
+    // ----- Milestone 1.0: Game Flow, Objectives, Hints & Endings ------------
+    const objectiveHUDView = new ObjectiveHUDView(context.overlayParent, objectiveController);
+    let activeFinalDecisionView: FinalDecisionView | null = null;
+    let activeEndingCinematicView: EndingCinematicView | null = null;
+    let activePostEndingView: PostEndingView | null = null;
+
+    let decisionInputLock: InputLockToken | null = null;
+    let endingInputLock: InputLockToken | null = null;
+
+    const closeFinalDecision = () => {
+      if (activeFinalDecisionView) {
+        activeFinalDecisionView.dispose();
+        activeFinalDecisionView = null;
+      }
+      if (decisionInputLock) {
+        controller.releaseInputLock(decisionInputLock);
+        decisionInputLock = null;
+      }
+      controller.setPointerLockPromptSuppressed(false);
+      objectiveHUDView.setModalSuppressed(false);
+    };
+
+    const showPostEndingSummary = (pathway: EndingPathway) => {
+      const stats = {
+        pathway,
+        elapsedSeconds: gameFlowState.elapsedPlaytimeSeconds,
+        discoveredFactsCount: narrativeRegistry.getDiscoveredFacts().length,
+        totalFactsCount: 9,
+        readDocumentsCount: 6,
+        totalDocumentsCount: 6,
+        checkpointsCount: checkpointRegistry.activatedCount,
+        totalCheckpointsCount: checkpointRegistry.totalCount,
+      };
+
+      activePostEndingView = new PostEndingView(context.overlayParent, stats, {
+        onRestart: () => {
+          if (activePostEndingView) {
+            activePostEndingView.dispose();
+            activePostEndingView = null;
+          }
+          if (endingInputLock) {
+            controller.releaseInputLock(endingInputLock);
+            endingInputLock = null;
+          }
+          controller.setPointerLockPromptSuppressed(false);
+          objectiveHUDView.setModalSuppressed(false);
+          restartController.restart();
+        },
+        onContinueExploring: () => {
+          if (activePostEndingView) {
+            activePostEndingView.dispose();
+            activePostEndingView = null;
+          }
+          if (endingInputLock) {
+            controller.releaseInputLock(endingInputLock);
+            endingInputLock = null;
+          }
+          controller.setPointerLockPromptSuppressed(false);
+          objectiveHUDView.setModalSuppressed(false);
+          if (gameFlowState.canAdvanceTo('FinalDecision')) {
+            gameFlowState.transitionChapter('FinalDecision');
+          } else {
+            gameFlowState.forceChapter('FinalDecision');
+          }
+          objectiveController.activateObjective('obj-execute-decision');
+        },
+      });
+    };
+
+    const startEndingFlow = (pathway: EndingPathway) => {
+      endingInputLock = controller.acquireInputLock('ending');
+      controller.setPointerLockPromptSuppressed(true);
+      if (document.pointerLockElement !== null) {
+        document.exitPointerLock();
+      }
+      objectiveHUDView.setModalSuppressed(true);
+
+      gameFlowState.unlockEnding(pathway);
+      gameFlowState.recordEndingChoice(pathway);
+      if (gameFlowState.canAdvanceTo('Ending')) {
+        gameFlowState.transitionChapter('Ending');
+      } else {
+        gameFlowState.forceChapter('Ending');
+      }
+      endingSequenceController.startEnding(pathway);
+
+      activeEndingCinematicView = new EndingCinematicView(
+        context.overlayParent,
+        endingSequenceController,
+        {
+          onComplete: () => {
+            if (activeEndingCinematicView) {
+              activeEndingCinematicView.dispose();
+              activeEndingCinematicView = null;
+            }
+            if (gameFlowState.canAdvanceTo('PostCompletion')) {
+              gameFlowState.transitionChapter('PostCompletion');
+            } else {
+              gameFlowState.forceChapter('PostCompletion');
+            }
+            showPostEndingSummary(pathway);
+          },
+        },
+      );
+    };
+
+    openFinalDecisionHandler = () => {
+      if (activeFinalDecisionView || activeEndingCinematicView || activePostEndingView) return;
+      decisionInputLock = controller.acquireInputLock('final-decision');
+      controller.setPointerLockPromptSuppressed(true);
+      if (document.pointerLockElement !== null) {
+        document.exitPointerLock();
+      }
+      objectiveHUDView.setModalSuppressed(true);
+      narrativeRegistry.unlockFact('FinalTerminalAccessed');
+      hintController.notifyProgress();
+      if (gameFlowState.canAdvanceTo('FinalDecision')) {
+        gameFlowState.transitionChapter('FinalDecision');
+      }
+
+      activeFinalDecisionView = new FinalDecisionView(
+        context.overlayParent,
+        finalDecisionController,
+        {
+          onClose: () => closeFinalDecision(),
+          onConfirmed: (pathway) => {
+            closeFinalDecision();
+            startEndingFlow(pathway);
+          },
+        },
+      );
+    };
+
+    const startGame = () => {
+      gameFlowState.startGame();
+      if (gameFlowState.canAdvanceTo('Arrival')) {
+        gameFlowState.transitionChapter('Arrival');
+      }
+      objectiveController.activateObjective('obj-reach-gate');
+      hintController.setActiveObjective('obj-reach-gate');
+    };
+
+    let gameStartOverlay: GameStartOverlay | null = null;
+    if (!context.environment.isDevelopment) {
+      gameStartOverlay = new GameStartOverlay(context.overlayParent, {
+        onStart: startGame,
+      });
+    } else {
+      startGame();
+    }
+
+    checkpointSnapshotManager.registerProvider(() => {
+      const snap = controller.getDebugSnapshot();
+      const rxSnap = receiverController.getSnapshot();
+      const thSnap = threatController.getSnapshot();
+      return {
+        chapterId: gameFlowState.currentChapterId,
+        player: {
+          position: [snap.position.x, snap.position.y, snap.position.z],
+          yaw: snap.yaw,
+        },
+        inventory: {
+          itemIds: inventory.getSnapshot().entries.map((i) => i.itemId),
+          activeSlot: null,
+          inspectionHistory: [],
+        },
+        facility: {
+          progressionPhase: facilityState.progressionPhase,
+          openedDoorIds: [
+            ...doorRegistry
+              .getAll()
+              .filter((d) => d.isOpen)
+              .map((d) => d.id),
+          ],
+          collectedPickupIds: [
+            ...pickupRegistry
+              .getAll()
+              .filter((p) => p.isCollected)
+              .map((p) => p.id),
+          ],
+          discoveredZoneIds: [...facilityState.getSnapshot().discoveredZoneIds],
+          activatedCheckpointIds: [
+            ...checkpointRegistry
+              .getAll()
+              .filter((c) => checkpointRegistry.isActivated(c.id))
+              .map((c) => c.id),
+          ],
+        },
+        power: facilityState.getSnapshot().power,
+        signal: {
+          receiverState: rxSnap.mode,
+          currentFrequency: rxSnap.controls.frequencyMHz,
+          bandwidth: rxSnap.controls.filter,
+          lockConfidence: rxSnap.metrics?.effectiveSignalStrength ?? 0,
+          decodedTranscripts: [...rxSnap.decodedSignalIds],
+        },
+        antenna: {
+          azimuth: antennaController.selectedArray
+            ? (antennaController.getMechanicalState(antennaController.selectedArray)
+                ?.currentAzimuthDeg ?? 0)
+            : 0,
+          elevation: antennaController.selectedArray
+            ? (antennaController.getMechanicalState(antennaController.selectedArray)
+                ?.currentElevationDeg ?? 0)
+            : 0,
+          alignmentScore: antennaController.selectedArray
+            ? (antennaController.getMetrics(antennaController.selectedArray)?.alignmentQuality ?? 0)
+            : 0,
+          waveguideRoute: 'Direct',
+          telemetryReport: sourceAnalysisController.analysisState === 'Resolved',
+        },
+        threat: {
+          phase: threatRuntimeState.threatPhase,
+          alertLevel: thSnap.detection > 0.6 ? 'High' : thSnap.detection > 0.2 ? 'Low' : 'None',
+          detectionScore: thSnap.detection,
+          encounterSurvivals: narrativeRegistry.hasFact('ThreatEncounterSurvived') ? 1 : 0,
+        },
+        narrative: narrativeRegistry.captureSnapshot(),
+        objectives: objectiveController.captureSnapshot(),
+        hints: hintController.captureSnapshot(),
+      };
+    });
+
+    checkpointSnapshotManager.registerConsumer((snapshot) => {
+      controller.teleportTo(
+        new Vector3(
+          snapshot.player.position[0],
+          snapshot.player.position[1],
+          snapshot.player.position[2],
+        ),
+        snapshot.player.yaw,
+      );
+      narrativeRegistry.restoreSnapshot(snapshot.narrative);
+      objectiveController.restoreSnapshot(snapshot.objectives);
+      hintController.restoreSnapshot(snapshot.hints);
+      if (snapshot.threat.detectionScore >= 1.0) {
+        threatBindings.resetAll();
+      }
+    });
+
+    const unsubCheckpoint = checkpointRegistry.subscribe((checkpointId) => {
+      checkpointSnapshotManager.captureCheckpoint(checkpointId);
+    });
+
+    const unsubDocs = documentController.subscribeOpened((docId) => {
+      hintController.notifyProgress();
+      if (docId === 'doc-facility-entry-log') {
+        narrativeRegistry.unlockFact('SecurityLogRead');
+        objectiveController.completeStep('obj-enter-facility', 'step-read-log');
+      } else if (docId === 'doc-archive-report') {
+        narrativeRegistry.unlockFact('ArchiveEvidenceDiscovered');
+      } else if (docId === 'doc-transmission-first-anomalous') {
+        narrativeRegistry.unlockFact('FirstTransmissionDecoded');
+        narrativeRegistry.unlockFact('ImpossibleTimestampNoticed');
+      }
+    });
+
+    const unsubThreatCompleted = threatRuntimeState.subscribe((event) => {
+      if (event.kind === 'encounter-completed' || event.kind === 'safe-zone-reached') {
+        narrativeRegistry.unlockFact('ThreatEncounterSurvived');
+        objectiveController.completeObjective('obj-survive-threat');
+        if (gameFlowState.currentChapterId === 'ThreatAftermath') {
+          gameFlowState.transitionChapter('FinalDecision');
+          objectiveController.activateObjective('obj-execute-decision');
+          hintController.setActiveObjective('obj-execute-decision');
+        }
+        hintController.notifyProgress();
+      }
+    });
+
+    const unsubAntennaEvents = antennaController.subscribe((event) => {
+      if (event.kind === 'Aligned') {
+        narrativeRegistry.unlockFact('AntennaAligned');
+        objectiveController.completeStep('obj-analyze-source', 'step-align-antenna');
+        hintController.notifyProgress();
+      }
+    });
+
+    const unsubSourceEvents = sourceAnalysisController.subscribe((event) => {
+      if (event.kind === 'AnalysisResolved') {
+        narrativeRegistry.unlockFact('LocalLoopResultRevealed');
+        objectiveController.completeStep('obj-analyze-source', 'step-run-telemetry');
+        objectiveController.completeObjective('obj-analyze-source');
+        if (gameFlowState.currentChapterId === 'SourceAnalysis') {
+          gameFlowState.transitionChapter('ThreatAftermath');
+          objectiveController.activateObjective('obj-survive-threat');
+          hintController.setActiveObjective('obj-survive-threat');
+        }
+        hintController.notifyProgress();
+      }
+    });
+
+    restartController.registerSystem({
+      reset: () => {
+        gameFlowState.reset();
+        narrativeRegistry.reset();
+        objectiveController.reset();
+        hintController.reset();
+        finalDecisionController.reset();
+        endingSequenceController.reset();
+        facilityState.reset();
+        powerNetwork.reset();
+        generatorController.reset();
+        for (const breaker of breakers.values()) {
+          breaker.reset();
+        }
+        powerPanelSession.close();
+        receiverPanelSession.close();
+        receiverController.reset();
+        receiverRuntimeState.reset();
+        antennaPanelSession.close();
+        antennaController.reset();
+        waveguideController.reset();
+        sourceAnalysisController.reset();
+        antennaRuntimeState.reset();
+        for (const array of FACILITY_ANTENNA_ARRAYS) {
+          antennaController.setWaveguideQuality(
+            array.id,
+            waveguideController.getSnapshot(array.waveguidePathId)?.continuity ?? 0,
+          );
+        }
+        emergencyPower.initializeEmergencyPower();
+        threatBindings.resetAll();
+        controller.teleportTo(SPAWN_POSITION, SPAWN_YAW);
+        startGame();
+      },
+    });
+
+    let gameFlowDebugOverlay: GameFlowDebugOverlay | null = null;
+    if (context.environment.isDevelopment) {
+      gameFlowDebugOverlay = new GameFlowDebugOverlay(
+        context.overlayParent,
+        gameFlowState,
+        objectiveController,
+        hintController,
+        narrativeRegistry,
+        (targetChapter: GameChapterId) => {
+          gameFlowState.transitionChapter(targetChapter);
+        },
+      );
+    }
 
     // ----- Dev overlays (F7, F8, F9) ---------------------------------------
     let removeDoorDebugListener: (() => void) | null = null;
@@ -1047,6 +1420,36 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           threatBindings.resetAll();
           controller.teleportTo(SPAWN_POSITION, SPAWN_YAW);
         };
+
+        // ----- Milestone 1.0: Test Bridge methods ---------------------------
+        b['getGameFlowSnapshot'] = () => gameFlowState.captureSnapshot();
+        b['getObjectiveSnapshot'] = () => objectiveController.captureSnapshot();
+        b['getHintSnapshot'] = () => hintController.captureSnapshot();
+        b['getNarrativeSnapshot'] = () => narrativeRegistry.captureSnapshot();
+        b['readDocument'] = (docId: string) => {
+          return documentController.open(docId, () => {});
+        };
+        b['closeDocument'] = () => {
+          documentController.close();
+          return true;
+        };
+        b['captureCheckpointSnapshot'] = (cpId: string) =>
+          checkpointSnapshotManager.captureCheckpoint(cpId) !== null;
+        b['restoreCheckpointSnapshot'] = (cpId: string) =>
+          checkpointSnapshotManager.restoreCheckpoint(cpId).success;
+        b['openFinalDecision'] = () => openFinalDecisionHandler();
+        b['selectFinalPathway'] = (pathway: EndingPathway) =>
+          finalDecisionController.selectPathway(pathway);
+        b['confirmFinalPathway'] = () => {
+          const res = finalDecisionController.confirmSelectedPathway();
+          if (res) {
+            closeFinalDecision();
+            startEndingFlow(res);
+          }
+          return res;
+        };
+        b['skipEndingSequence'] = () => endingSequenceController.skipToCompletion();
+        b['restartGame'] = () => restartController.restart();
       }
     }
 
@@ -1055,6 +1458,10 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     const lastCheckedPosition = new Vector3(NaN, NaN, NaN);
 
     const zoneObserver = scene.onBeforeRenderObservable.add(() => {
+      const dt = Math.min(scene.getEngine().getDeltaTime() / 1000, 0.05);
+      gameFlowState.updatePlaytime(dt);
+      hintController.update(dt);
+
       // Tick the facility debug overlay (rate-limited internally).
       facilityDebugOverlay?.tick();
       powerDebugOverlay?.tick();
@@ -1120,7 +1527,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
 
     return {
       scene,
-      markerText: 'Milestone 0.9 — Threat Foundation',
+      markerText: 'Milestone 1.0 — Complete Greybox',
       getDebugFields: () => {
         const snap = facilityState.getSnapshot();
         const genSnap = generatorController.snapshot;
@@ -1226,6 +1633,17 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
             delete b['teleportToPosition'];
             delete b['leaveHidingSpot'];
             delete b['resetThreat'];
+            delete b['getGameFlowSnapshot'];
+            delete b['getObjectiveSnapshot'];
+            delete b['getHintSnapshot'];
+            delete b['getNarrativeSnapshot'];
+            delete b['captureCheckpointSnapshot'];
+            delete b['restoreCheckpointSnapshot'];
+            delete b['openFinalDecision'];
+            delete b['selectFinalPathway'];
+            delete b['confirmFinalPathway'];
+            delete b['skipEndingSequence'];
+            delete b['restartGame'];
           }
         }
 
@@ -1248,6 +1666,11 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         unsubGeneratorEvents();
         unsubPowerEvents();
         unsubSignalCounters();
+        unsubCheckpoint();
+        unsubDocs();
+        unsubThreatCompleted();
+        unsubAntennaEvents();
+        unsubSourceEvents();
         receiverBindings.dispose();
         antennaBindings.dispose();
         threatBindings.dispose();
@@ -1256,6 +1679,12 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           binding.dispose();
         }
 
+        gameStartOverlay?.dispose();
+        objectiveHUDView.dispose();
+        activeFinalDecisionView?.dispose();
+        activeEndingCinematicView?.dispose();
+        activePostEndingView?.dispose();
+        gameFlowDebugOverlay?.dispose();
         facilityDebugOverlay?.dispose();
         powerDebugOverlay?.dispose();
         signalDebugOverlay?.dispose();

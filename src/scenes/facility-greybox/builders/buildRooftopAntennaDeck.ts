@@ -155,6 +155,7 @@ export function buildRooftopAntennaDeck(ctx: FacilitySceneContext, scene: Scene)
     repeatable: false,
     onEnter: () => {
       ctx.facilityState.recordZoneDiscovered('fg-zone-antenna-deck');
+      ctx.checkpointRegistry.activate('fg-cp-rooftop');
     },
   });
 

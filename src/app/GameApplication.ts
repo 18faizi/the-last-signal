@@ -158,7 +158,7 @@ export class GameApplication {
       // the application only places whatever the active scene provides.
       const markerText = this.sceneManager?.currentHandle?.markerText;
       dom.readyMarker.textContent = markerText ?? '';
-      dom.readyMarker.hidden = markerText === undefined;
+      dom.readyMarker.hidden = markerText === undefined || !this.context.environment.isDevelopment;
       dom.canvas.focus();
 
       this.transitionTo('running');

@@ -19,6 +19,7 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { FacilitySceneContext } from '../FacilitySceneContext';
 import { createReceiverInteractionTarget } from '../../../game/receiver/ReceiverInteractionTarget';
 import { isReceiverPowered } from '../../../game/receiver/ReceiverMode';
+import type { InteractionContext } from '../../../game/interaction/InteractionTarget';
 
 export const RECEIVER_TARGET_ID = 'fg-receiver';
 
@@ -46,8 +47,13 @@ export function buildReceiverConsole(ctx: FacilitySceneContext, scene: Scene): v
     scene,
     () => isReceiverPowered(ctx.receiverController.receiverMode),
   );
+  const originalInteract = target.interact.bind(target);
   const wrappedTarget = {
     ...target,
+    interact: (context: InteractionContext) => {
+      ctx.checkpointRegistry.activate('fg-cp-receiver');
+      return originalInteract(context);
+    },
     dispose: () => {
       unsubscribe();
       target.dispose?.();

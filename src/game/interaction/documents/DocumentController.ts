@@ -41,6 +41,13 @@ export class DocumentController implements Disposable {
     return this.view.isOpen;
   }
 
+  private readonly openListeners = new Set<(documentId: string) => void>();
+
+  public subscribeOpened(listener: (documentId: string) => void): () => void {
+    this.openListeners.add(listener);
+    return () => this.openListeners.delete(listener);
+  }
+
   /** Returns false (with a recoverable report) when the document is missing. */
   open(documentId: string, onClosed: () => void): boolean {
     if (this.isOpen) {
@@ -60,6 +67,13 @@ export class DocumentController implements Disposable {
       document.exitPointerLock();
     }
     this.view.open(definition, () => this.close());
+    for (const listener of this.openListeners) {
+      try {
+        listener(documentId);
+      } catch (err) {
+        console.error('[DocumentController] Listener error:', err);
+      }
+    }
     return true;
   }
 

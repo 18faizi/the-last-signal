@@ -17,7 +17,9 @@ export type InteractionMode =
   | 'power-panel'
   | 'receiver'
   | 'antenna-panel'
-  | 'hiding';
+  | 'hiding'
+  | 'final-decision'
+  | 'ending';
 
 const TRANSITIONS: Readonly<Record<InteractionMode, readonly InteractionMode[]>> = {
   gameplay: ['holding', 'transitioning', 'inventory'],
@@ -29,6 +31,8 @@ const TRANSITIONS: Readonly<Record<InteractionMode, readonly InteractionMode[]>>
     'receiver',
     'antenna-panel',
     'hiding',
+    'final-decision',
+    'ending',
     'gameplay',
   ],
   inspecting: ['gameplay'],
@@ -37,11 +41,9 @@ const TRANSITIONS: Readonly<Record<InteractionMode, readonly InteractionMode[]>>
   'power-panel': ['gameplay'],
   receiver: ['gameplay'],
   'antenna-panel': ['gameplay'],
-  // Hiding (Milestone 0.9): entered via transitioning like every other
-  // engaged mode; exits only back to gameplay. While hiding, inventory /
-  // receiver / power-panel / antenna-panel / reading / inspection / doors
-  // are unreachable BY CONSTRUCTION — none is a legal successor of 'hiding'.
   hiding: ['gameplay'],
+  'final-decision': ['gameplay', 'transitioning', 'ending'],
+  ending: ['gameplay'],
 };
 
 export function canTransitionMode(from: InteractionMode, to: InteractionMode): boolean {
@@ -64,6 +66,8 @@ export function isOverlayMode(mode: InteractionMode): boolean {
     mode === 'power-panel' ||
     mode === 'receiver' ||
     mode === 'antenna-panel' ||
-    mode === 'hiding'
+    mode === 'hiding' ||
+    mode === 'final-decision' ||
+    mode === 'ending'
   );
 }
