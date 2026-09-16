@@ -21,7 +21,9 @@ export type EventCondition =
   | { readonly kind: 'time-since-event'; readonly eventId: string; readonly seconds: number }
   | { readonly kind: 'threat-state'; readonly state: ThreatState }
   | { readonly kind: 'player-in-gameplay-mode' }
-  | { readonly kind: 'event-completed'; readonly eventId: string };
+  | { readonly kind: 'event-completed'; readonly eventId: string }
+  | { readonly kind: 'clue-discovered'; readonly clueId: string }
+  | { readonly kind: 'clue-chain-completed'; readonly chainId: string };
 
 /** Narrow query surface the scene bindings implement. */
 export interface EventConditionContext {
@@ -39,6 +41,8 @@ export interface EventConditionContext {
   /** True when the player is in plain gameplay (no overlay/panel/hiding). */
   isPlayerInGameplayMode(): boolean;
   isEventCompleted(eventId: string): boolean;
+  isClueDiscovered?(clueId: string): boolean;
+  isClueChainCompleted?(chainId: string): boolean;
 }
 
 export function evaluateCondition(condition: EventCondition, ctx: EventConditionContext): boolean {
@@ -69,6 +73,10 @@ export function evaluateCondition(condition: EventCondition, ctx: EventCondition
       return ctx.isPlayerInGameplayMode();
     case 'event-completed':
       return ctx.isEventCompleted(condition.eventId);
+    case 'clue-discovered':
+      return ctx.isClueDiscovered?.(condition.clueId) ?? false;
+    case 'clue-chain-completed':
+      return ctx.isClueChainCompleted?.(condition.chainId) ?? false;
   }
 }
 

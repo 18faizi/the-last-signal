@@ -16,6 +16,7 @@ import {
   initialInspectionView,
   rotateInspectionView,
   zoomInspectionView,
+  flipInspectionView,
   type InspectionViewState,
 } from './InspectionOrientation';
 
@@ -47,13 +48,22 @@ export class InspectionController implements Disposable {
   private camera: TargetCamera | null = null;
   private light: HemisphericLight | null = null;
   private model: TransformNode | null = null;
+  private currentTarget: InspectableTarget | null = null;
   private previousCamera: Camera | null = null;
   private lockToken: InputLockToken | null = null;
   private view: InspectionViewState = initialInspectionView(DEFAULT_INSPECTION_VIEW_CONFIG);
   private closeRequested = false;
-  private readonly escListener = (event: KeyboardEvent): void => {
+  private clueDiscoveryListener: ((clueId: string) => void) | null = null;
+
+  private readonly keyListener = (event: KeyboardEvent): void => {
     if (event.code === 'Escape') {
       this.closeRequested = true;
+    } else if (event.code === 'KeyF') {
+      this.flip();
+    } else if (event.code === 'KeyH') {
+      this.highlight();
+    } else if (event.code === 'KeyR') {
+      this.resetView();
     }
   };
 
@@ -61,6 +71,10 @@ export class InspectionController implements Disposable {
     this.scene = scene;
     this.player = player;
     this.overlay = overlay;
+  }
+
+  public onClueDiscovered(listener: (clueId: string) => void): void {
+    this.clueDiscoveryListener = listener;
   }
 
   get isOpen(): boolean {
@@ -113,8 +127,12 @@ export class InspectionController implements Disposable {
         });
       }
 
+      // Wire flip and highlight buttons on overlay
+      this.overlay.setFlipCallback(() => this.flip());
+      this.overlay.setHighlightCallback(() => this.highlight());
+
       this.closeRequested = false;
-      document.addEventListener('keydown', this.escListener);
+      document.addEventListener('keydown', this.keyListener);
     } catch (error) {
       // Failed setup must never leave input suspended or a half-built rig.
       this.teardownSession();
@@ -151,6 +169,32 @@ export class InspectionController implements Disposable {
     return true;
   }
 
+  flip(): void {
+    if (!this.isOpen) return;
+    this.view = flipInspectionView(this.view);
+    this.applyView();
+
+    if (this.currentTarget && 'flipClueId' in this.currentTarget) {
+      const clueId = (this.currentTarget as { flipClueId: string }).flipClueId;
+      if (typeof clueId === 'string') {
+        this.clueDiscoveryListener?.(clueId);
+        this.overlay.showClueBanner('Inscription revealed on reverse');
+      }
+    }
+  }
+
+  highlight(): void {
+    if (!this.isOpen) return;
+
+    if (this.currentTarget && 'inspectionClueId' in this.currentTarget) {
+      const clueId = (this.currentTarget as { inspectionClueId: string }).inspectionClueId;
+      if (typeof clueId === 'string') {
+        this.clueDiscoveryListener?.(clueId);
+        this.overlay.showClueBanner('Critical markings analyzed');
+      }
+    }
+  }
+
   resetView(): void {
     if (this.isOpen) {
       this.view = initialInspectionView(DEFAULT_INSPECTION_VIEW_CONFIG);
@@ -174,7 +218,7 @@ export class InspectionController implements Disposable {
   }
 
   private teardownSession(): void {
-    document.removeEventListener('keydown', this.escListener);
+    document.removeEventListener('keydown', this.keyListener);
     if (this.previousCamera !== null) {
       this.scene.activeCamera = this.previousCamera;
       this.previousCamera = null;
@@ -184,6 +228,9 @@ export class InspectionController implements Disposable {
     }
     this.model?.dispose(false, true);
     this.model = null;
+    this.currentTarget = null;
+    this.overlay.setFlipCallback(null);
+    this.overlay.setHighlightCallback(null);
     this.overlay.hide();
     if (this.lockToken !== null) {
       this.player.releaseInputLock(this.lockToken);

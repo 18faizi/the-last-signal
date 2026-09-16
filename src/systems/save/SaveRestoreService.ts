@@ -39,6 +39,7 @@ import type { HintController } from '../../game/hints/HintController';
 import type { HintTier } from '../../game/hints/HintTypes';
 import type { GameFlowState } from '../../game/flow/GameFlowState';
 import type { GameChapter } from '../../game/flow/GameChapter';
+import type { InvestigationStore } from '../investigation/InvestigationStore';
 import { SaveManager } from './SaveManager';
 import {
   CURRENT_SAVE_SCHEMA_VERSION,
@@ -68,6 +69,7 @@ export interface SaveRestoreContext {
   readonly objectiveController: ObjectiveController;
   readonly hintController: HintController;
   readonly gameFlowState: GameFlowState;
+  readonly investigationStore?: InvestigationStore | null;
 }
 
 export class SaveRestoreService {
@@ -190,6 +192,16 @@ export class SaveRestoreService {
         revealedFacts: [...narrativeSnap.discoveredFacts],
         readDocumentIds: [],
       },
+      investigation: ctx.investigationStore
+        ? ctx.investigationStore.captureSnapshot()
+        : {
+            discoveredDocumentIds: [],
+            discoveredClueIds: [],
+            completedChainIds: [],
+            highlightedClueIds: [],
+            unlockedFrequencies: [],
+            unlockedDoorCodes: [],
+          },
       objectives: {
         activeObjectiveId: objectiveSnap.activeObjectiveId,
         completedObjectiveIds,
@@ -355,6 +367,10 @@ export class SaveRestoreService {
         discoveredFacts: snap.narrative.revealedFacts as NarrativeFactId[],
         discoveryTimestamps: {},
       });
+
+      if (snap.investigation && ctx.investigationStore) {
+        ctx.investigationStore.restoreSnapshot(snap.investigation);
+      }
 
       if (snap.objectives.activeObjectiveId) {
         ctx.objectiveController.activateObjective(snap.objectives.activeObjectiveId);

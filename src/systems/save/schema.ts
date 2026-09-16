@@ -79,6 +79,15 @@ export interface NarrativeSaveState {
   readonly readDocumentIds: readonly string[];
 }
 
+export interface InvestigationSaveState {
+  readonly discoveredDocumentIds: readonly string[];
+  readonly discoveredClueIds: readonly string[];
+  readonly completedChainIds: readonly string[];
+  readonly highlightedClueIds: readonly string[];
+  readonly unlockedFrequencies: readonly number[];
+  readonly unlockedDoorCodes: readonly string[];
+}
+
 export interface ObjectivesSaveState {
   readonly activeObjectiveId: string | null;
   readonly completedObjectiveIds: readonly string[];
@@ -101,6 +110,7 @@ export interface SaveSnapshot {
   readonly antenna: AntennaSaveState;
   readonly threat: ThreatSaveState;
   readonly narrative: NarrativeSaveState;
+  readonly investigation?: InvestigationSaveState;
   readonly objectives: ObjectivesSaveState;
   readonly hints: HintsSaveState;
 }

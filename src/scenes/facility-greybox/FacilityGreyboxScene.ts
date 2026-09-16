@@ -178,6 +178,9 @@ import { AudioManager } from '../../systems/audio/AudioManager';
 import { createAudioBridge } from '../../systems/audio/hooks/useAudioBridge';
 import { SaveRestoreService } from '../../systems/save/SaveRestoreService';
 import { SaveManager } from '../../systems/save/SaveManager';
+import { InvestigationStore } from '../../systems/investigation/InvestigationStore';
+import { STRUCTURED_DOCUMENTS } from '../../systems/investigation/clueDefinitions';
+import { FieldNotesUI } from '../../systems/investigation/components/FieldNotesUI';
 
 const SPAWN_POSITION = new Vector3(-58, 0.1, 0);
 const SPAWN_YAW = 0; // facing east (+X)
@@ -302,6 +305,26 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     for (const doc of FACILITY_DOCUMENTS) {
       documentRegistry.register(doc);
     }
+    const investigationStore = new InvestigationStore();
+    for (const sDoc of STRUCTURED_DOCUMENTS) {
+      if (!documentRegistry.get(sDoc.id)) {
+        documentRegistry.register({
+          id: sDoc.id,
+          title: sDoc.title,
+          ...(sDoc.date !== undefined ? { date: sDoc.date } : {}),
+          ...(sDoc.author !== undefined ? { author: sDoc.author } : {}),
+          blocks: sDoc.pages.map((p) => ({ kind: 'paragraph' as const, text: p })),
+        });
+      }
+    }
+
+    investigationStore.subscribeEvents((event) => {
+      if (event.kind === 'clue-discovered' && event.clue.narrativeFactId) {
+        narrativeRegistry.unlockFact(event.clue.narrativeFactId);
+      } else if (event.kind === 'chain-resolved' && event.chain.resolvedFactId) {
+        narrativeRegistry.unlockFact(event.chain.resolvedFactId);
+      }
+    });
     for (const zone of FACILITY_ZONES) {
       zoneRegistry.register(zone);
     }
@@ -623,6 +646,17 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       context.errorReporter,
     );
 
+    const fieldNotesUI = new FieldNotesUI(
+      document.body,
+      investigationStore,
+      controller,
+      context.canvas,
+    );
+
+    inspection.onClueDiscovered((clueId) => {
+      investigationStore.discoverClue(clueId);
+    });
+
     const debugView = context.environment.isDevelopment
       ? new InteractionDebugView(scene, DEFAULT_INTERACTION_CONFIG.probeDistance)
       : null;
@@ -930,30 +964,39 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         objectiveController,
         hintController,
         gameFlowState,
+        investigationStore,
       },
       saveManager,
     );
 
     let saveShortcutHandler: ((e: KeyboardEvent) => void) | null = null;
     if (context.environment.isDevelopment && typeof window !== 'undefined') {
+      (
+        window as unknown as { __TLS_TEST_INVESTIGATION_BRIDGE__?: unknown }
+      ).__TLS_TEST_INVESTIGATION_BRIDGE__ = {
+        discoverClue: (id: string) => investigationStore.discoverClue(id),
+        discoverDocument: (id: string) => investigationStore.discoverDocument(id),
+        getDiscoveredClues: () => investigationStore.getDiscoveredClues(),
+        getCompletedChains: () => investigationStore.getCompletedChains(),
+        openFieldNotes: () => fieldNotesUI.open(),
+        closeFieldNotes: () => fieldNotesUI.close(),
+        isFieldNotesOpen: () => fieldNotesUI.isOpen,
+      };
+
       saveShortcutHandler = (e: KeyboardEvent) => {
         if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 's')) {
           e.preventDefault();
           void saveRestoreService.saveGame('quicksave').then((ok) => {
-            console.log(`[SaveSystem] QuickSave ${ok ? 'succeeded' : 'failed'}`);
+            if (ok) notificationView.notify('Game Saved (QuickSave)');
           });
-        } else if (e.key === 'F9' && (e.ctrlKey || e.altKey)) {
+        } else if (e.key === 'F9') {
           e.preventDefault();
           void saveRestoreService.loadGame('quicksave').then((ok) => {
-            console.log(`[SaveSystem] QuickLoad ${ok ? 'succeeded' : 'failed'}`);
+            if (ok) notificationView.notify('Game Loaded (QuickLoad)');
           });
         }
       };
       window.addEventListener('keydown', saveShortcutHandler);
-      (window as unknown as Record<string, unknown>)['quickSave'] = () =>
-        saveRestoreService.saveGame('quicksave');
-      (window as unknown as Record<string, unknown>)['quickLoad'] = () =>
-        saveRestoreService.loadGame('quicksave');
     }
 
     const unsubCheckpoint = checkpointRegistry.subscribe((checkpointId) => {
@@ -963,6 +1006,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
 
     const unsubDocs = documentController.subscribeOpened((docId) => {
       hintController.notifyProgress();
+      investigationStore.discoverDocument(docId);
       if (docId === 'doc-facility-entry-log') {
         narrativeRegistry.unlockFact('SecurityLogRead');
         objectiveController.completeStep('obj-enter-facility', 'step-read-log');
@@ -1804,8 +1848,10 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         inspectionOverlay.dispose();
         reticleView.dispose();
         promptView.dispose();
+        fieldNotesUI.dispose();
         audioBridge.dispose();
         controller.dispose();
+        investigationStore.reset();
 
         interactionRegistry.dispose();
         documentRegistry.clear();

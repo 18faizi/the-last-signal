@@ -64,3 +64,10 @@ export function zoomInspectionView(
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
+
+export function flipInspectionView(state: InspectionViewState): InspectionViewState {
+  let yaw = state.yaw + Math.PI;
+  while (yaw > Math.PI) yaw -= 2 * Math.PI;
+  while (yaw < -Math.PI) yaw += 2 * Math.PI;
+  return { yaw, pitch: -state.pitch, radius: state.radius };
+}

@@ -207,6 +207,8 @@ export function bindFacilityThreat(deps: ThreatBindingsDeps): ThreatBindingsHand
         case 'advance-threat-phase':
           threatRuntimeState.tryAdvancePhase(action.phase);
           break;
+        case 'discover-clue':
+          break;
       }
     },
   };

@@ -32,7 +32,8 @@ export type EventAction =
   | { readonly kind: 'threat-investigate'; readonly position: Point3 }
   | { readonly kind: 'threat-withdraw'; readonly final: boolean }
   | { readonly kind: 'complete-encounter'; readonly encounterId: string }
-  | { readonly kind: 'advance-threat-phase'; readonly phase: ThreatProgressionPhase };
+  | { readonly kind: 'advance-threat-phase'; readonly phase: ThreatProgressionPhase }
+  | { readonly kind: 'discover-clue'; readonly clueId: string };
 
 export interface EventActionExecutor {
   execute(action: EventAction): void;
