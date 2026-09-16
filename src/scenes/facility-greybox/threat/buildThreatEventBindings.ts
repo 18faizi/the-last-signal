@@ -57,8 +57,12 @@ import {
 } from '../power/facilityPowerDefinitions';
 import type { HidingPromptGate } from './buildHidingSpots';
 import type { ThreatPropsHandle } from './buildThreatManifestation';
-import { LIGHT_CTRL_CORRIDOR } from './facilityThreatDefinitions';
+import { FACILITY_THREAT_FIXTURES, LIGHT_CTRL_CORRIDOR } from './facilityThreatDefinitions';
 import { FACILITY_THREAT_EVENTS, FIRST_CONTACT_RESET_PLAN } from './facilityEncounterDefinitions';
+import {
+  ManifestationDirector,
+  type LightFixtureProxy,
+} from '../../../systems/threat/ManifestationDirector';
 
 const LOS_PROBE_INTERVAL_SECONDS = 0.12;
 const MANIFEST_PROBE_INTERVAL_SECONDS = 0.15;
@@ -87,6 +91,7 @@ export interface ThreatBindingsDeps {
 
 export interface ThreatBindingsHandle {
   readonly director: EventDirector;
+  readonly manifestationDirector: ManifestationDirector;
   getDevMessages(): readonly string[];
   getDebugFields(): ReadonlyArray<readonly [string, string]>;
   /** Full dev reset of every threat/event/hiding/safe-zone runtime state. */
@@ -123,6 +128,24 @@ export function bindFacilityThreat(deps: ThreatBindingsDeps): ThreatBindingsHand
     encounterStatus,
     hidingPromptGate,
   } = deps;
+
+  const manifestationDirector = new ManifestationDirector(
+    ctx.antennaRuntimeState.isRevealComplete ? 'Tier2_PostAntenna' : 'Tier1_PostGenerator',
+  );
+
+  const lightProxies: LightFixtureProxy[] = Array.from(props.lights.values()).map((light) => {
+    const fixtureDef = FACILITY_THREAT_FIXTURES.find((f) => f.id === light.id);
+    return {
+      id: light.id,
+      position: fixtureDef?.position ?? { x: 0, y: 0, z: 0 },
+      get mode() {
+        return light.mode;
+      },
+      set mode(m) {
+        light.setMode(m);
+      },
+    };
+  });
 
   const devMessages: string[] = [];
   const logDev = (text: string): void => {
@@ -380,6 +403,22 @@ export function bindFacilityThreat(deps: ThreatBindingsDeps): ThreatBindingsHand
         playerInSafeZone,
       });
       playerWasInSafeZone = playerInSafeZone;
+
+      if (hidingSession.isOpen && hidingController.currentSpot !== null) {
+        const spotPos = hidingController.currentSpot.entryPosition;
+        const tension = threatController.evaluateHidingTension(
+          spotPos,
+          hidingController.currentSpot.id,
+        );
+        hidingSession.updateTension(tension);
+      }
+
+      manifestationDirector.updateLightSuppression(
+        threatController.position,
+        threatController.brain.currentModifiers.lightSuppressionRadius,
+        lightProxies,
+      );
+      manifestationDirector.update(dt, threatController.position);
 
       const actor = props.actorSilhouette;
       const pos = threatController.position;
@@ -703,6 +742,7 @@ export function bindFacilityThreat(deps: ThreatBindingsDeps): ThreatBindingsHand
       exposure = 1;
       playerWasInSafeZone = false;
       resetInFlight = false;
+      manifestationDirector.reset(lightProxies);
       maybeDetachHeavyObserver();
       // Re-run first-bind reconciliation for the fresh playthrough.
       if (ctx.antennaRuntimeState.isRevealComplete) {
@@ -710,6 +750,7 @@ export function bindFacilityThreat(deps: ThreatBindingsDeps): ThreatBindingsHand
       }
       director.evaluate();
     },
+    manifestationDirector,
     dispose: () => {
       for (const unsubscribe of unsubscribers) unsubscribe();
       if (heavyObserver !== null) {
@@ -717,6 +758,7 @@ export function bindFacilityThreat(deps: ThreatBindingsDeps): ThreatBindingsHand
         heavyObserver = null;
       }
       scene.onBeforeRenderObservable.remove(lightObserver);
+      manifestationDirector.dispose(lightProxies);
       director.dispose();
     },
   };

@@ -92,8 +92,21 @@ export class HidingSession implements HidingControls, Disposable {
     return true;
   }
 
+  private currentTension = 0;
+
+  get tension(): number {
+    return this.currentTension;
+  }
+
+  updateTension(tension: number): void {
+    if (!this.isOpen) return;
+    this.currentTension = tension;
+    this.overlay.setTension(tension);
+  }
+
   close(): void {
     if (!this.isOpen) return;
+    this.currentTension = 0;
     if (this.cameraObserver !== null) {
       this.scene.onBeforeRenderObservable.remove(this.cameraObserver);
       this.cameraObserver = null;

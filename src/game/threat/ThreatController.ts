@@ -34,6 +34,12 @@ import {
   tryTransitionThreatState,
   type ThreatState,
 } from './ThreatState';
+import {
+  ThreatBrain,
+  type ThreatBrainState,
+  type ThreatEscalationTier,
+} from '../../systems/threat/ThreatBrain';
+import { ThreatSearchBehavior } from '../../systems/threat/ThreatSearchBehavior';
 
 export interface ThreatPerceptionInput {
   readonly playerPosition: Point3;
@@ -53,6 +59,7 @@ export interface ThreatControllerDeps {
   readonly isDoorPassable: (doorId: string) => boolean;
   /** Confinement test: false when a position leaves encounter-approved zones. */
   readonly isPositionAllowed: (position: Point3) => boolean;
+  readonly initialTier?: ThreatEscalationTier;
 }
 
 /** Stimulus strength an Observing/Unaware threat reacts to immediately. */
@@ -63,6 +70,8 @@ export class ThreatController {
   private readonly bus = new ThreatEventBus();
   private readonly suspicionCtrl: SuspicionController;
   private readonly behavior: ThreatBehaviorController;
+  private readonly _brain: ThreatBrain;
+  private readonly _searchBehavior: ThreatSearchBehavior;
 
   private lastKnownPlayerPosition: Point3 | null = null;
   private lastStimulusPosition: Point3 | null = null;
@@ -90,6 +99,8 @@ export class ThreatController {
     this.suspicionCtrl.subscribe(() => {
       this.pendingPursuit = true;
     });
+    this._brain = new ThreatBrain(deps.definition, deps.initialTier ?? 'Tier1_PostGenerator');
+    this._searchBehavior = new ThreatSearchBehavior();
     this.behavior = new ThreatBehaviorController(
       {
         graph: deps.graph,
@@ -116,6 +127,43 @@ export class ThreatController {
 
   get threatState(): ThreatState {
     return this.state;
+  }
+
+  get brain(): ThreatBrain {
+    return this._brain;
+  }
+
+  get brainState(): ThreatBrainState {
+    return this._brain.brainState;
+  }
+
+  get search(): ThreatSearchBehavior {
+    return this._searchBehavior;
+  }
+
+  setEscalationTier(tier: ThreatEscalationTier): void {
+    this._brain.setEscalationTier(tier);
+  }
+
+  transitionBrainState(target: ThreatBrainState): boolean {
+    const success = this._brain.transitionTo(target);
+    if (success) {
+      this.syncThreatStateFromBrain(target);
+    }
+    return success;
+  }
+
+  evaluateHidingTension(hidingSpotPosition: Point3, spotId?: string): number {
+    return this._brain.evaluateHidingTension(
+      this.behavior.currentPosition,
+      hidingSpotPosition,
+      spotId,
+    );
+  }
+
+  notifyStillnessBroken(position: Point3): void {
+    this._brain.notifyStillnessBroken(position);
+    this.commandInvestigate(position);
   }
 
   get isActive(): boolean {
@@ -291,6 +339,8 @@ export class ThreatController {
     this.searchDone = false;
     this.withdrawDone = false;
     this.pendingPursuit = false;
+    this._brain.reset();
+    this._searchBehavior.reset();
     if (previous !== 'Dormant') {
       this.emit({ kind: 'ThreatDeactivated' });
     }
@@ -299,6 +349,8 @@ export class ThreatController {
   dispose(): void {
     this.bus.dispose();
     this.suspicionCtrl.dispose();
+    this._brain.dispose();
+    this._searchBehavior.reset();
   }
 
   // ----- per-tick (scoped observer, active states only) --------------------
@@ -341,6 +393,26 @@ export class ThreatController {
         hasLineOfSight: this.hasLos,
       });
       this.lastVisionScore = vision.score;
+
+      const dx = input.playerPosition.x - this.behavior.currentPosition.x;
+      const dy = input.playerPosition.y - this.behavior.currentPosition.y;
+      const dz = input.playerPosition.z - this.behavior.currentPosition.z;
+      const distToPlayer = Math.hypot(dx, dy, dz);
+
+      this._brain.update(
+        dt,
+        {
+          playerPosition: input.playerPosition,
+          distanceToPlayer: distToPlayer,
+          hasLineOfSight: this.hasLos,
+          visionScore: vision.score,
+          soundPressure,
+          lastSoundPosition: this.lastStimulusPosition,
+          playerFullyHidden: input.playerFullyHidden,
+          playerInSafeZone: input.playerInSafeZone,
+        },
+        this.behavior.currentPosition,
+      );
 
       const suspicion = this.suspicionCtrl.currentSuspicion;
       const cfg = this.deps.definition.suspicion;
@@ -483,6 +555,7 @@ export class ThreatController {
     }
     const previous = this.state;
     this.state = next;
+    this.syncBrainStateFromThreatState(next);
     this.emit({ kind: 'ThreatStateChanged', state: next, previousState: previous });
   }
 
@@ -496,7 +569,85 @@ export class ThreatController {
     }
     const previous = this.state;
     this.state = next;
+    this.syncBrainStateFromThreatState(next);
     this.emit({ kind: 'ThreatStateChanged', state: next, previousState: previous });
+  }
+
+  private syncBrainStateFromThreatState(threatState: ThreatState): void {
+    switch (threatState) {
+      case 'Dormant':
+      case 'Inactive':
+      case 'Fault':
+        this._brain.reset();
+        break;
+      case 'Unaware':
+      case 'Observing':
+        this._brain.transitionTo('Patrol');
+        break;
+      case 'Suspicious':
+      case 'Investigating':
+        this._brain.transitionTo('AlertedInvestigate');
+        break;
+      case 'Searching':
+        this._brain.transitionTo('ActiveSearch');
+        break;
+      case 'Pursuing':
+        this._brain.transitionTo('StalkingPursuit');
+        break;
+      case 'LostTarget':
+        this._brain.transitionTo('EncounterResolution');
+        break;
+      case 'Withdrawing':
+        this._brain.transitionTo('Relocate');
+        break;
+    }
+  }
+
+  private syncThreatStateFromBrain(target: ThreatBrainState): void {
+    switch (target) {
+      case 'Dormant':
+        if (this.state !== 'Dormant') {
+          try {
+            this.transitionOrThrow('Dormant');
+          } catch {
+            this.state = 'Dormant';
+          }
+        }
+        break;
+      case 'Patrol':
+        if (this.state === 'Dormant') {
+          this.activateUnawareAt(this.deps.definition.homeNodeId);
+        } else if (this.state !== 'Unaware') {
+          this.setState('Unaware');
+        }
+        break;
+      case 'AlertedInvestigate':
+        if (this.state !== 'Investigating') {
+          if (this.state === 'Unaware') this.setState('Suspicious');
+          this.setState('Investigating');
+        }
+        break;
+      case 'ActiveSearch':
+        if (this.state !== 'Searching') {
+          this.setState('Searching');
+        }
+        break;
+      case 'StalkingPursuit':
+        if (this.state !== 'Pursuing') {
+          this.setState('Pursuing');
+        }
+        break;
+      case 'EncounterResolution':
+        if (this.state !== 'LostTarget') {
+          this.setState('LostTarget');
+        }
+        break;
+      case 'Relocate':
+        if (this.state !== 'Withdrawing') {
+          this.withdraw();
+        }
+        break;
+    }
   }
 
   private emit(event: Omit<ThreatEvent, 'threatId'>): void {
