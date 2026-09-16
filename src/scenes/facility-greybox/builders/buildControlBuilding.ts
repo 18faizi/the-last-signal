@@ -24,6 +24,7 @@ import {
   DOOR_DEF_TUNNEL_SHORTCUT,
 } from '../facilityDoorDefinitions';
 import { FACILITY_PICKUP_DEFS } from '../facilityItemDefinitions';
+import { SignageBuilder } from '../props/SignageBuilder';
 
 export function buildControlBuilding(ctx: FacilitySceneContext, scene: Scene): void {
   const { geo, materials } = ctx;
@@ -289,10 +290,31 @@ export function buildControlBuilding(ctx: FacilitySceneContext, scene: Scene): v
   const shortcutTarget = new DoorInteractionTarget(shortcutDoor, scene);
   ctx.interactionRegistry.register(shortcutTarget);
 
-  // ----- Labels ----------------------------------------------------------
+  // ----- Labels & Wayfinding Conduits ------------------------------------
   geo.label('CONTROL BUILDING', new Vector3(0, 2, 13), 3);
   geo.label('MAIN CONTROL ROOM', new Vector3(-3, 2, 22), 3);
   geo.label('ARCHIVE →', new Vector3(4, 2, 18), 2);
+
+  // Color-coded hallway wall conduit lines
+  const signage = new SignageBuilder(scene);
+  // Yellow conduit leading down to generator basement shortcut
+  signage.createCorridorConduit(
+    'ctrl-power-conduit',
+    [new Vector3(-4, 2.2, 13), new Vector3(-4, 2.2, 16), new Vector3(-6, 0.5, 14)],
+    'power',
+  );
+  // Blue conduit leading to main control & antenna telemetry
+  signage.createCorridorConduit(
+    'ctrl-telecom-conduit',
+    [new Vector3(0, 2.4, 13), new Vector3(0, 2.4, 22), new Vector3(-3, 2.4, 22)],
+    'telecom',
+  );
+  // Green conduit leading along security entrance pathway
+  signage.createCorridorConduit(
+    'ctrl-security-conduit',
+    [new Vector3(2, 2.0, 13), new Vector3(2, 2.0, 18), new Vector3(4, 2.0, 18)],
+    'security',
+  );
 
   // ----- Zone triggers ---------------------------------------------------
   ctx.triggerVolumes.add({

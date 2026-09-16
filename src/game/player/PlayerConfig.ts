@@ -73,13 +73,13 @@ export const DEFAULT_PLAYER_CONFIG: PlayerConfig = {
   airAcceleration: 6,
   maxAirControlSpeed: 3.2,
 
-  jumpVelocity: 4.4,
+  jumpVelocity: 4.8,
   gravityY: -9.81,
   coyoteTimeSeconds: 0.1,
   jumpBufferSeconds: 0.1,
 
   maxSlopeAngleDeg: 46,
-  maxStepHeight: 0.35,
+  maxStepHeight: 0.4,
 
   crouchTransitionSeconds: 0.22,
   headClearanceMargin: 0.05,
@@ -93,7 +93,7 @@ export const DEFAULT_PLAYER_CONFIG: PlayerConfig = {
   maxPitch: (89 * Math.PI) / 180,
   minPitch: (-89 * Math.PI) / 180,
 
-  outOfBoundsY: -12,
+  outOfBoundsY: -15,
   resetCameraOnRespawn: false,
 
   maxDeltaTimeSeconds: 0.05,

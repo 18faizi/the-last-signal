@@ -1654,7 +1654,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       }
 
       // Checkpoint respawn: if the player falls out of bounds, warp to latest.
-      if (fp.y < -10) {
+      if (fp.y < -15) {
         const cp = checkpointRegistry.latestCheckpoint;
         if (cp !== null) {
           controller.teleportTo(

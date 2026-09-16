@@ -10,6 +10,7 @@
  */
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { FacilitySceneContext } from '../FacilitySceneContext';
+import { SignageBuilder } from '../props/SignageBuilder';
 
 export function buildCourtyard(ctx: FacilitySceneContext): void {
   const { geo } = ctx;
@@ -28,6 +29,15 @@ export function buildCourtyard(ctx: FacilitySceneContext): void {
 
   // Path to staff quarters
   geo.floor('path-staff', { cx: 43, cy: 0.02, cz: -9, w: 3, d: 18, h: 0.05 });
+
+  // Courtyard Central Wayfinding Fingerpost
+  const signage = new SignageBuilder(ctx.scene);
+  signage.createCourtyardFingerpost(new Vector3(2, 0, 0), [
+    { label: 'CONTROL BUILDING', direction: 'forward' },
+    { label: 'GENERATOR FACILITY', direction: 'right' },
+    { label: 'STAFF QUARTERS', direction: 'backward' },
+    { label: 'COMMUNICATIONS TOWER', direction: 'left' },
+  ]);
 
   // Decorative tunnel hatch (visual, ground level)
   geo.course.box('fac-tunnel-hatch', {

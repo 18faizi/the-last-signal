@@ -12,6 +12,10 @@
  *   Security booth: x ∈ [-20, -12], z ∈ [4, 11]
  */
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { Scene } from '@babylonjs/core/scene';
 import type { FacilitySceneContext } from '../FacilitySceneContext';
 import { DoorController } from '../../../game/doors/DoorController';
@@ -20,6 +24,7 @@ import { createPickup } from '../../../game/pickups/PickupController';
 import { createReadableDocument } from '../../interaction-test/testTargets/documentTargets';
 import { DOOR_DEF_COMPOUND_GATE } from '../facilityDoorDefinitions';
 import { FACILITY_PICKUP_DEFS } from '../facilityItemDefinitions';
+import { SignageBuilder } from '../props/SignageBuilder';
 
 export function buildPerimeterGate(ctx: FacilitySceneContext, scene: Scene): void {
   const { geo, materials } = ctx;
@@ -147,8 +152,47 @@ export function buildPerimeterGate(ctx: FacilitySceneContext, scene: Scene): voi
   });
   ctx.interactionRegistry.register(logTarget);
 
-  // ----- Gate area label -------------------------------------------------
+  // ----- Gate area label & architectural wayfinding ---------------------
   geo.label('SECURITY CHECKPOINT', new Vector3(-16, 3.5, 7.5), 3.5);
+
+  const signage = new SignageBuilder(scene);
+  signage.createSign({
+    id: 'gate-checkpoint-sign',
+    text: 'SECURITY CHECKPOINT 01',
+    subtext: 'RESTRICTED FACILITY ENTRANCE',
+    position: new Vector3(-20.15, 3.3, 4.5),
+    rotationY: -Math.PI / 2, // Facing approaching player (-X)
+    width: 3.2,
+    height: 0.85,
+    accentColor: '#f59e0b',
+  });
+
+  // ----- Warm Amber Sodium Floodlight Focal Point -------------------------
+  // High-intensity beacon cutting through the fog, visible directly from spawn
+  const floodHousing = CreateBox(
+    'gate-sodium-housing',
+    { width: 0.45, height: 0.45, depth: 0.75 },
+    scene,
+  );
+  floodHousing.position.set(-20.1, 4.2, 5.5);
+  floodHousing.material = materials.palette.metal;
+  floodHousing.isPickable = false;
+  floodHousing.checkCollisions = false;
+
+  const floodLens = CreateBox('gate-sodium-lens', { width: 0.1, height: 0.38, depth: 0.65 }, scene);
+  floodLens.position.set(-20.35, 4.2, 5.5);
+  const lensMat = new StandardMaterial('gate-sodium-lens-mat', scene);
+  lensMat.diffuseColor = new Color3(1.0, 0.65, 0.2);
+  lensMat.emissiveColor = new Color3(1.0, 0.7, 0.25); // Intense amber glow
+  floodLens.material = lensMat;
+  floodLens.isPickable = false;
+  floodLens.checkCollisions = false;
+
+  const sodiumLight = new PointLight('gate-sodium-floodlight', new Vector3(-20.8, 4.2, 5.5), scene);
+  sodiumLight.diffuse = new Color3(1.0, 0.68, 0.25); // Sodium amber
+  sodiumLight.specular = new Color3(0.5, 0.35, 0.15);
+  sodiumLight.intensity = 1.6;
+  sodiumLight.range = 28.0;
 
   // ----- Zone trigger: security checkpoint --------------------------------
   ctx.triggerVolumes.add({
