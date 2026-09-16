@@ -174,6 +174,8 @@ import { GameStartOverlay } from '../../ui/start/GameStartOverlay';
 import { GameFlowDebugOverlay } from '../../ui/debug/GameFlowDebugOverlay';
 import { buildCommandTerminal } from './decision/buildCommandTerminal';
 import type { InputLockToken } from '../../game/player/InputLock';
+import { AudioManager } from '../../systems/audio/AudioManager';
+import { createAudioBridge } from '../../systems/audio/hooks/useAudioBridge';
 
 const SPAWN_POSITION = new Vector3(-58, 0.1, 0);
 const SPAWN_YAW = 0; // facing east (+X)
@@ -523,6 +525,20 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         pointerLockPromptLabel: 'Click to enter The Last Signal — Facility',
       },
     );
+
+    // ----- Audio System (Milestone 1.1) -------------------------------------
+    const audioManager = new AudioManager();
+    const audioBridge = createAudioBridge({
+      audio: audioManager,
+      scene,
+      controller,
+      zoneRegistry,
+      powerNetwork,
+      generatorController,
+      receiverController,
+      threatController,
+      settings: context.settings,
+    });
 
     // ----- UI views ---------------------------------------------------------
     const reticleView = new CrosshairReticleView(context.overlayParent);
@@ -1718,6 +1734,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         inspectionOverlay.dispose();
         reticleView.dispose();
         promptView.dispose();
+        audioBridge.dispose();
         controller.dispose();
 
         interactionRegistry.dispose();
