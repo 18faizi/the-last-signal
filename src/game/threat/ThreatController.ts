@@ -176,7 +176,9 @@ export class ThreatController {
 
   /** Dormant -> Unaware at a node (active patrol without a staged reveal). */
   activateUnawareAt(nodeId: ThreatNodeId): void {
-    this.transitionOrThrow('Unaware');
+    if (this.state !== 'Unaware') {
+      this.transitionOrThrow('Unaware');
+    }
     this.behavior.placeAtNode(nodeId);
     this.suspicionCtrl.resetEncounter();
     this.emit({ kind: 'ThreatActivated', nodeId });
@@ -184,7 +186,9 @@ export class ThreatController {
 
   /** Observing -> Unaware (begin active patrol toward an optional node). */
   beginPatrol(targetNodeId?: ThreatNodeId): void {
-    this.transitionOrThrow('Unaware');
+    if (this.state !== 'Unaware') {
+      this.transitionOrThrow('Unaware');
+    }
     if (targetNodeId !== undefined) {
       this.behavior.startRouteTo(targetNodeId);
     }

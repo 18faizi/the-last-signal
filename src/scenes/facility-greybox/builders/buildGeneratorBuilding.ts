@@ -243,6 +243,7 @@ export function buildGeneratorBuilding(ctx: FacilitySceneContext, scene: Scene):
     onEnter: () => {
       ctx.facilityState.tryAdvancePhase('GeneratorAccessed');
       ctx.facilityState.recordZoneDiscovered('fg-zone-generator-hall');
+      ctx.checkpointRegistry.activate('fg-cp-generator-room');
     },
   });
 

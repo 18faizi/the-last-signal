@@ -20,6 +20,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:foundation": "playwright test --project=foundation",
+    "test:e2e:systems": "playwright test --project=power --project=signal --project=antenna",
+    "test:e2e:threat": "playwright test --project=threat",
+    "test:e2e:full": "playwright test --project=full-playthrough --project=endings --project=recovery",
+    "test:e2e:production": "playwright test --project=production-smoke",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {

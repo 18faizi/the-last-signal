@@ -274,14 +274,18 @@ export function bindFacilityThreat(deps: ThreatBindingsDeps): ThreatBindingsHand
       ctx.zoneRegistry.isCurrentlyInside('fg-zone-control-lobby') ||
       ctx.zoneRegistry.isCurrentlyInside('fg-zone-relay-room') ||
       ctx.zoneRegistry.isCurrentlyInside('fg-zone-stairwell');
+    const inControlRoom = ctx.zoneRegistry.isCurrentlyInside('fg-zone-control-room');
     const corridorLit = props.lights.get(LIGHT_CTRL_CORRIDOR)?.mode === 'on';
+    const ctrlPowered = ctx.powerNetwork.isCircuitEnergized(CIRCUIT_CONTROL_ROOM_ID);
     const zonePowered = insideBuilding
-      ? ctx.powerNetwork.isCircuitEnergized(CIRCUIT_CONTROL_ROOM_ID) && corridorLit
+      ? inControlRoom
+        ? ctrlPowered
+        : ctrlPowered && corridorLit
       : true; // outdoors: daylight
     const emergencyOnly =
       insideBuilding &&
       !zonePowered &&
-      ctx.powerNetwork.isCircuitEnergized(CIRCUIT_EMERGENCY_SECURITY_ID);
+      (ctrlPowered || ctx.powerNetwork.isCircuitEnergized(CIRCUIT_EMERGENCY_SECURITY_ID));
     return evaluateExposure({
       zonePowered,
       emergencyLightingOnly: emergencyOnly,

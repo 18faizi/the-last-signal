@@ -65,6 +65,18 @@ export interface TestBridge {
   collectPickup?(pickupId: string): boolean;
   getDoorState?(doorId: string): DoorBridgeSnapshot | null;
   openDoor?(doorId: string): boolean;
+  /** Installed by FacilityGreyboxScene (Milestone 1.0). */
+  getGameFlowSnapshot?(): unknown;
+  getObjectiveSnapshot?(): unknown;
+  getHintSnapshot?(): unknown;
+  getNarrativeSnapshot?(): unknown;
+  captureCheckpointSnapshot?(checkpointId: string): unknown;
+  restoreCheckpointSnapshot?(checkpointId: string): unknown;
+  openFinalDecision?(): void;
+  selectFinalPathway?(pathway: string): boolean;
+  confirmFinalPathway?(): string | null;
+  skipEndingSequence?(): void;
+  restartGame?(): void;
 }
 
 declare global {

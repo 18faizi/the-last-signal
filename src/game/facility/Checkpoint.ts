@@ -53,6 +53,13 @@ export class CheckpointRegistry {
     return this.checkpoints.get(id)?.activated ?? false;
   }
 
+  private readonly listeners = new Set<(checkpointId: string) => void>();
+
+  public subscribe(listener: (checkpointId: string) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
   /** Activate a checkpoint by id.  No-op if already activated. */
   activate(id: string, now = Date.now()): boolean {
     const state = this.checkpoints.get(id);
@@ -64,6 +71,13 @@ export class CheckpointRegistry {
     if (now >= this.latestAt) {
       this.latestId = id;
       this.latestAt = now;
+    }
+    for (const listener of this.listeners) {
+      try {
+        listener(id);
+      } catch (err) {
+        console.error('[CheckpointRegistry] Listener error:', err);
+      }
     }
     return true;
   }

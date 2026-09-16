@@ -38,6 +38,18 @@ export const FACILITY_CHECKPOINTS: readonly CheckpointDefinition[] = [
     spawnYaw: -Math.PI / 2, // facing west into tunnel
   },
   {
+    id: 'fg-cp-generator-room',
+    label: 'Generator Building',
+    spawnPosition: { x: 45, y: 0.1, z: 0 },
+    spawnYaw: -Math.PI / 2,
+  },
+  {
+    id: 'fg-cp-distribution-panel',
+    label: 'Electrical Distribution',
+    spawnPosition: { x: -8.7, y: 0.1, z: 18 },
+    spawnYaw: -Math.PI / 2,
+  },
+  {
     id: 'fg-cp-staff-quarters',
     label: 'Staff Quarters',
     spawnPosition: { x: 42, y: 0.1, z: -16 },
@@ -50,11 +62,29 @@ export const FACILITY_CHECKPOINTS: readonly CheckpointDefinition[] = [
     spawnYaw: 0,
   },
   {
+    id: 'fg-cp-rooftop',
+    label: 'Rooftop Antenna Deck',
+    spawnPosition: { x: 0, y: 6.1, z: 22 },
+    spawnYaw: Math.PI,
+  },
+  {
     // Milestone 0.9: activated by the event director when the first
     // encounter begins; encounter failure returns the player here.
     id: 'fg-cp-encounter-start',
     label: 'Control Room (Encounter)',
     spawnPosition: { x: -2, y: 0.1, z: 19 },
     spawnYaw: Math.PI, // facing south toward the lobby doorway
+  },
+  {
+    id: 'fg-cp-receiver',
+    label: 'Signal Receiver Console',
+    spawnPosition: { x: -8.7, y: 0.1, z: 22 },
+    spawnYaw: -Math.PI / 2,
+  },
+  {
+    id: 'fg-cp-command-terminal',
+    label: 'Command Terminal Deck',
+    spawnPosition: { x: -2, y: 0.1, z: 24 },
+    spawnYaw: 0,
   },
 ];

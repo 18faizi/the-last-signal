@@ -41,7 +41,10 @@ export function buildDistributionPanel(ctx: FacilitySceneContext, scene: Scene):
     meshes: [panelMesh],
     getPrompt: () => ({ verb: 'OPEN', label: 'DISTRIBUTION PANEL' }),
     getAvailability: () => AVAILABLE,
-    interact: () => ({ status: 'completed' as const }),
+    interact: () => {
+      ctx.checkpointRegistry.activate('fg-cp-distribution-panel');
+      return { status: 'completed' as const };
+    },
   };
   ctx.interactionRegistry.register(panelTarget);
 

@@ -25,12 +25,99 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'foundation',
+      testMatch: /tests\/e2e\/(movement|interaction|access|facility)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          // Headless Chromium has no GPU; SwiftShader provides a software
-          // WebGL implementation so the Babylon WebGL fallback can start.
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'power',
+      testMatch: /tests\/e2e\/power\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'signal',
+      testMatch: /tests\/e2e\/signal\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'antenna',
+      testMatch: /tests\/e2e\/antenna\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'threat',
+      testMatch: /tests\/e2e\/threat\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'full-playthrough',
+      testMatch: /tests\/e2e\/playthrough\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'endings',
+      testMatch: /tests\/e2e\/endings\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'recovery',
+      testMatch: /tests\/e2e\/recovery\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+          ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
+        },
+      },
+    },
+    {
+      name: 'production-smoke',
+      testMatch: /tests\/e2e\/smoke\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
           args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
           ...(chromiumExecutable !== undefined && { executablePath: chromiumExecutable }),
         },
