@@ -111,6 +111,28 @@ export class CheckpointRegistry {
     this.latestAt = 0;
   }
 
+  /** Restores activated checkpoints without firing progression side-effects. */
+  restoreActivated(activatedIds: readonly string[], latestId?: string | null): void {
+    this.reset();
+    for (const id of activatedIds) {
+      const state = this.checkpoints.get(id);
+      if (state !== undefined) {
+        state.activated = true;
+        state.activatedAt = Date.now();
+      }
+    }
+    if (latestId && this.checkpoints.has(latestId)) {
+      this.latestId = latestId;
+      this.latestAt = Date.now();
+    } else if (activatedIds.length > 0) {
+      const last = activatedIds[activatedIds.length - 1];
+      if (last !== undefined && this.checkpoints.has(last)) {
+        this.latestId = last;
+        this.latestAt = Date.now();
+      }
+    }
+  }
+
   clear(): void {
     this.reset();
     this.checkpoints.clear();

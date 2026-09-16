@@ -489,4 +489,28 @@ export class AntennaController {
       this.bus.emit({ kind: 'AlignmentLost', arrayId: id });
     }
   }
+
+  /**
+   * Restores antenna selection and mechanical orientation from a save snapshot.
+   */
+  restoreSnapshot(snap: {
+    selectedArray?: string | null;
+    azimuth?: number;
+    elevation?: number;
+  }): void {
+    if (snap.selectedArray && this.arrays.has(snap.selectedArray as AntennaArrayId)) {
+      this.selectArray(snap.selectedArray as AntennaArrayId);
+      const entry = this.arrays.get(snap.selectedArray as AntennaArrayId);
+      if (entry) {
+        if (typeof snap.azimuth === 'number') {
+          entry.mechanical.currentAzimuthDeg = snap.azimuth;
+          entry.mechanical.targetAzimuthDeg = snap.azimuth;
+        }
+        if (typeof snap.elevation === 'number') {
+          entry.mechanical.currentElevationDeg = snap.elevation;
+          entry.mechanical.targetElevationDeg = snap.elevation;
+        }
+      }
+    }
+  }
 }

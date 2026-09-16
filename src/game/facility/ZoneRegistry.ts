@@ -101,6 +101,16 @@ export class ZoneRegistry {
     this.discoveredZones.clear();
   }
 
+  /** Restores discovered zone states (used by save/restore). */
+  restoreDiscoveredZones(zoneIds: readonly string[]): void {
+    this.discoveredZones.clear();
+    for (const id of zoneIds) {
+      if (this.zones.has(id)) {
+        this.discoveredZones.add(id);
+      }
+    }
+  }
+
   clear(): void {
     this.reset();
     this.zones.clear();

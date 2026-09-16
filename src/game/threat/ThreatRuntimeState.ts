@@ -177,6 +177,41 @@ export class ThreatRuntimeState {
     this.emit({ kind: 'reset' });
   }
 
+  /** Restores threat runtime state from a snapshot. */
+  restoreSnapshot(snap: Partial<ThreatRuntimeSnapshot>): void {
+    if (snap.threatPhase) {
+      this.phase = snap.threatPhase;
+    }
+    if (snap.completedEventIds) {
+      this.completedEventIds.clear();
+      for (const id of snap.completedEventIds) {
+        this.completedEventIds.add(id);
+      }
+    }
+    if (snap.completedEncounterIds) {
+      this.completedEncounters.clear();
+      for (const id of snap.completedEncounterIds) {
+        this.completedEncounters.add(id);
+      }
+    }
+    if (snap.manifestationsSeen) {
+      this.manifestationsSeen.clear();
+      for (const id of snap.manifestationsSeen) {
+        this.manifestationsSeen.add(id);
+      }
+    }
+    if (snap.hidingSpotsDiscovered) {
+      this.hidingSpotsDiscovered.clear();
+      for (const id of snap.hidingSpotsDiscovered) {
+        this.hidingSpotsDiscovered.add(id);
+      }
+    }
+    if (typeof snap.safeZoneReached === 'boolean') {
+      this.safeZone = snap.safeZoneReached;
+    }
+    this.emit({ kind: 'phase-changed', phase: this.phase });
+  }
+
   subscribe(listener: ThreatRuntimeListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

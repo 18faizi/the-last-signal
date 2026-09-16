@@ -174,6 +174,46 @@ export class DoorController {
   }
 
   /**
+   * Instantly snaps the door to the open state (used by save/restore and debugging).
+   */
+  forceOpen(): void {
+    this.state.physical = 'open';
+    this.state.openFraction = 1;
+    this.motion.applyFraction(1);
+  }
+
+  /**
+   * Instantly snaps the door to the closed state (used by save/restore and debugging).
+   */
+  forceClosed(): void {
+    this.state.physical = 'closed';
+    this.state.openFraction = 0;
+    this.motion.applyFraction(0);
+  }
+
+  /**
+   * Forces the door lock state to unlocked, updating LED visuals.
+   */
+  forceUnlock(): void {
+    this.state.access = 'unlocked';
+    if (this.lockState !== null) {
+      this.lockState.value = 'unlocked';
+    }
+    this.updateColor();
+  }
+
+  /**
+   * Forces the door lock state to locked, updating LED visuals.
+   */
+  forceLock(): void {
+    this.state.access = 'locked';
+    if (this.lockState !== null) {
+      this.lockState.value = 'locked';
+    }
+    this.updateColor();
+  }
+
+  /**
    * Per-frame update. Call from the scene's onBeforeRender observer.
    * deltaSeconds: time since last frame, capped externally.
    */

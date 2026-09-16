@@ -176,6 +176,8 @@ import { buildCommandTerminal } from './decision/buildCommandTerminal';
 import type { InputLockToken } from '../../game/player/InputLock';
 import { AudioManager } from '../../systems/audio/AudioManager';
 import { createAudioBridge } from '../../systems/audio/hooks/useAudioBridge';
+import { SaveRestoreService } from '../../systems/save/SaveRestoreService';
+import { SaveManager } from '../../systems/save/SaveManager';
 
 const SPAWN_POSITION = new Vector3(-58, 0.1, 0);
 const SPAWN_YAW = 0; // facing east (+X)
@@ -906,8 +908,57 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       }
     });
 
+    const saveManager = new SaveManager();
+    const saveRestoreService = new SaveRestoreService(
+      {
+        scene,
+        controller,
+        facilityState,
+        zoneRegistry,
+        checkpointRegistry,
+        powerNetwork,
+        generatorController,
+        inventory,
+        pickupRegistry,
+        doorRegistry,
+        receiverController,
+        antennaController,
+        sourceAnalysisController,
+        threatController,
+        threatRuntimeState,
+        narrativeRegistry,
+        objectiveController,
+        hintController,
+        gameFlowState,
+      },
+      saveManager,
+    );
+
+    let saveShortcutHandler: ((e: KeyboardEvent) => void) | null = null;
+    if (context.environment.isDevelopment && typeof window !== 'undefined') {
+      saveShortcutHandler = (e: KeyboardEvent) => {
+        if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 's')) {
+          e.preventDefault();
+          void saveRestoreService.saveGame('quicksave').then((ok) => {
+            console.log(`[SaveSystem] QuickSave ${ok ? 'succeeded' : 'failed'}`);
+          });
+        } else if (e.key === 'F9' && (e.ctrlKey || e.altKey)) {
+          e.preventDefault();
+          void saveRestoreService.loadGame('quicksave').then((ok) => {
+            console.log(`[SaveSystem] QuickLoad ${ok ? 'succeeded' : 'failed'}`);
+          });
+        }
+      };
+      window.addEventListener('keydown', saveShortcutHandler);
+      (window as unknown as Record<string, unknown>)['quickSave'] = () =>
+        saveRestoreService.saveGame('quicksave');
+      (window as unknown as Record<string, unknown>)['quickLoad'] = () =>
+        saveRestoreService.loadGame('quicksave');
+    }
+
     const unsubCheckpoint = checkpointRegistry.subscribe((checkpointId) => {
       checkpointSnapshotManager.captureCheckpoint(checkpointId);
+      saveRestoreService.saveGame('autosave').catch(() => {});
     });
 
     const unsubDocs = documentController.subscribeOpened((docId) => {
@@ -1455,6 +1506,13 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
           checkpointSnapshotManager.captureCheckpoint(cpId) !== null;
         b['restoreCheckpointSnapshot'] = (cpId: string) =>
           checkpointSnapshotManager.restoreCheckpoint(cpId).success;
+        b['saveGame'] = (slotId = 'quicksave') => saveRestoreService.saveGame(slotId);
+        b['loadGame'] = (slotId = 'quicksave') => saveRestoreService.loadGame(slotId);
+        b['listSaves'] = () => saveRestoreService.listSaves();
+        b['deleteSave'] = (slotId: string) => saveRestoreService.deleteSave(slotId);
+        b['captureSaveSnapshot'] = (slotId = 'quicksave') =>
+          saveRestoreService.captureSaveSnapshot(slotId);
+        b['restoreSaveSnapshot'] = (snap: unknown) => saveRestoreService.restoreSaveSnapshot(snap);
         b['openFinalDecision'] = () => openFinalDecisionHandler();
         b['selectFinalPathway'] = (pathway: EndingPathway) =>
           finalDecisionController.selectPathway(pathway);
@@ -1657,12 +1715,24 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
             delete b['getNarrativeSnapshot'];
             delete b['captureCheckpointSnapshot'];
             delete b['restoreCheckpointSnapshot'];
+            delete b['saveGame'];
+            delete b['loadGame'];
+            delete b['listSaves'];
+            delete b['deleteSave'];
+            delete b['captureSaveSnapshot'];
+            delete b['restoreSaveSnapshot'];
             delete b['openFinalDecision'];
             delete b['selectFinalPathway'];
             delete b['confirmFinalPathway'];
             delete b['skipEndingSequence'];
             delete b['restartGame'];
           }
+        }
+
+        if (saveShortcutHandler && typeof window !== 'undefined') {
+          window.removeEventListener('keydown', saveShortcutHandler);
+          delete (window as unknown as Record<string, unknown>)['quickSave'];
+          delete (window as unknown as Record<string, unknown>)['quickLoad'];
         }
 
         removeAccessBridge();

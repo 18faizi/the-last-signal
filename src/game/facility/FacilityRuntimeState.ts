@@ -271,6 +271,59 @@ export class FacilityRuntimeState {
     this.emit({ kind: 'reset' });
   }
 
+  /** Restores facility runtime state from a snapshot. */
+  restoreSnapshot(snapshot: Partial<FacilityRuntimeSnapshot>): void {
+    if (snapshot.progressionPhase) {
+      this.phase = snapshot.progressionPhase;
+    }
+    if (typeof snapshot.isComplete === 'boolean') {
+      this.complete = snapshot.isComplete;
+    }
+    if (snapshot.collectedPickupIds) {
+      this.collectedPickups.clear();
+      for (const id of snapshot.collectedPickupIds) {
+        this.collectedPickups.add(id);
+      }
+    }
+    if (snapshot.openedDoorIds) {
+      this.openedDoors.clear();
+      for (const id of snapshot.openedDoorIds) {
+        this.openedDoors.add(id);
+      }
+    }
+    if (snapshot.discoveredZoneIds) {
+      this.discoveredZones.clear();
+      for (const id of snapshot.discoveredZoneIds) {
+        this.discoveredZones.add(id);
+      }
+    }
+    if (snapshot.activatedCheckpointIds) {
+      this.activatedCheckpoints.clear();
+      for (const id of snapshot.activatedCheckpointIds) {
+        this.activatedCheckpoints.add(id);
+      }
+    }
+    if (snapshot.power) {
+      this.generatorState = snapshot.power.generatorState;
+      this.fuelValve = snapshot.power.fuelValve;
+      this.starterBattery = snapshot.power.starterBattery;
+      this.emergencyStop = snapshot.power.emergencyStop;
+      this.controlSelector = snapshot.power.controlSelector;
+      this.mainBreaker = snapshot.power.mainBreaker;
+      this.circuits.clear();
+      for (const [k, v] of Object.entries(snapshot.power.circuits)) {
+        this.circuits.set(k, v);
+      }
+      this.sourceAvailability.clear();
+      for (const [k, v] of Object.entries(snapshot.power.sourceAvailability)) {
+        this.sourceAvailability.set(k, v);
+      }
+      this.receiverActivated = snapshot.power.receiverActivated;
+      this.powerNetworkOperational = snapshot.power.powerNetworkOperational;
+    }
+    this.emit({ kind: 'phase-changed', phase: this.phase });
+  }
+
   // ----- events ----------------------------------------------------------
 
   subscribe(listener: FacilityStateListener): () => void {

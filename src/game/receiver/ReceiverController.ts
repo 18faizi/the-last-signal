@@ -490,4 +490,36 @@ export class ReceiverController {
       }
     }
   }
+
+  /**
+   * Restores receiver settings and decoded signals from a save snapshot.
+   */
+  restoreSnapshot(snap: {
+    receiverState?: string;
+    currentFrequencyMHz?: number;
+    bandwidth?: number;
+    decodedSignalIds?: readonly string[];
+  }): void {
+    if (typeof snap.currentFrequencyMHz === 'number') {
+      this.setFrequency(snap.currentFrequencyMHz);
+    }
+    if (typeof snap.bandwidth === 'number') {
+      this.setFilter(snap.bandwidth);
+    }
+    if (snap.decodedSignalIds) {
+      for (const id of snap.decodedSignalIds) {
+        this.decodedSignalIds.add(id as SignalId);
+      }
+    }
+    if (snap.receiverState && snap.receiverState !== 'Offline') {
+      this.powerOn();
+      if (
+        snap.receiverState === 'Tuning' ||
+        snap.receiverState === 'Locked' ||
+        snap.receiverState === 'Decoding'
+      ) {
+        this.open();
+      }
+    }
+  }
 }
