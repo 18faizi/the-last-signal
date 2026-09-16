@@ -177,4 +177,32 @@ export const FACILITY_DOCUMENTS: readonly DocumentDefinition[] = [
       },
     ],
   },
+  {
+    id: 'doc-truck-dispatch-slip',
+    title: 'LOGISTICS DISPATCH SLIP — VEHICLE 04',
+    date: '14 November',
+    author: 'Driver H. Larson, Facilities Transport',
+    blocks: [
+      {
+        kind: 'heading',
+        text: 'EVACUATION RUN LOG',
+      },
+      {
+        kind: 'paragraph',
+        text: 'Attempted to clear the station perimeter at 17:30 following acoustic alarms. Western mountain pass is completely impassable—major rockfall and landslide triggered by ground tremors. Road sealed.',
+      },
+      {
+        kind: 'paragraph',
+        text: 'Vehicle 04 radio began broadcasting high-frequency screeching static as soon as the rooftop antenna energized. Engine died on the shoulder. Abandoning vehicle and returning on foot to Security Checkpoint to seek shelter.',
+      },
+      {
+        kind: 'list',
+        items: [
+          'Pass status: IMPASSABLE (landslide debris)',
+          'Vehicle status: Ignition dead, radio locked on static',
+          'Driver: Returning to Security Booth on foot',
+        ],
+      },
+    ],
+  },
 ];

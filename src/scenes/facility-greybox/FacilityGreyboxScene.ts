@@ -56,7 +56,9 @@ import { FacilityGeometryHelper } from './FacilityGeometryHelper';
 import type { FacilitySceneContext } from './FacilitySceneContext';
 import { TeleportMenuOverlay } from './overlay/TeleportMenuOverlay';
 import { FacilityDebugOverlay } from './overlay/FacilityDebugOverlay';
-import { ArcticSkybox } from './atmosphere/ArcticSkybox';
+import { AtmosphereController } from '../../environment/sky/AtmosphereController';
+import { HorizonBackdrop } from '../../environment/vista/HorizonBackdrop';
+import type { SkyPhase } from '../../environment/types';
 import { CourtyardWeather } from './atmosphere/CourtyardWeather';
 import { FacilityLighting } from './atmosphere/FacilityLighting';
 import { CrosshairReticleView } from '../../ui/reticle/CrosshairReticleView';
@@ -206,10 +208,15 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     const scene = new Scene(context.engine);
     scene.clearColor = new Color4(0.04, 0.06, 0.09, 1);
 
-    // Visual Overhaul: Arctic Skybox, Snow Weather & Cinematic Facility Lighting
-    const skybox = new ArcticSkybox(scene);
-    const weather = new CourtyardWeather(scene);
+    // Visual Overhaul: Atmosphere Controller, Horizon Vista, Weather & Lighting
     const lighting = new FacilityLighting(scene);
+    const atmosphere = new AtmosphereController(scene, {
+      initialPhase: 'NightClear',
+      moonLight: lighting.moon,
+      hemiLight: lighting.hemi,
+    });
+    const horizonVista = new HorizonBackdrop(scene);
+    const weather = new CourtyardWeather(scene);
 
     const physicsPlugin = await context.physics.enableForScene(scene);
 
@@ -257,6 +264,18 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
       ANTENNA_TOWER_DIAGNOSTIC_ID,
     ]);
     const antennaRuntimeState = new AntennaRuntimeState();
+
+    // Hook sky phase transition to antenna progression
+    const unsubscribeAntennaAtmosphere = antennaRuntimeState.subscribe((event) => {
+      if (event.kind === 'completed') {
+        atmosphere.transitionTo('SignalDistortion', 3.5);
+      } else if (event.kind === 'reset') {
+        atmosphere.setPhaseImmediate('NightClear');
+      }
+    });
+    if (antennaRuntimeState.isRevealComplete) {
+      atmosphere.setPhaseImmediate('SignalDistortion');
+    }
 
     // ----- Threat / stealth / event-director domain (Milestone 0.9) ---------
     const threatRuntimeState = new ThreatRuntimeState();
@@ -1487,6 +1506,9 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         };
         b['getStimulusCount'] = () => stimulusRegistry.activeCount;
         b['getThreatDevMessages'] = () => [...threatBindings.getDevMessages()];
+        b['getAtmospherePhase'] = () => atmosphere.currentPhase;
+        b['setAtmospherePhase'] = (p: SkyPhase, duration?: number) =>
+          atmosphere.transitionTo(p, duration ?? 2.0);
         b['enterHidingSpot'] = (spotId: string) => interaction.devActivate(spotId);
         // Movement/positioning assist for headless CI (like teleportTo, but
         // to an arbitrary point — never sets any threat/perception state).
@@ -1753,6 +1775,8 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
             delete b['teleportToPosition'];
             delete b['leaveHidingSpot'];
             delete b['resetThreat'];
+            delete b['getAtmospherePhase'];
+            delete b['setAtmospherePhase'];
             delete b['getGameFlowSnapshot'];
             delete b['getObjectiveSnapshot'];
             delete b['getHintSnapshot'];
@@ -1875,10 +1899,12 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         hidingSpotRegistry.clear();
         safeZoneRegistry.clear();
 
+        unsubscribeAntennaAtmosphere();
         geo.dispose();
         materials.dispose();
         weather.dispose();
-        skybox.dispose();
+        atmosphere.dispose();
+        horizonVista.dispose();
         lighting.dispose();
 
         scene.dispose();

@@ -7,6 +7,7 @@
  */
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { FacilitySceneContext } from '../FacilitySceneContext';
+import { buildUtilityTruck } from '../props/UtilityTruckBuilder';
 
 export function buildMountainApproach(ctx: FacilitySceneContext): void {
   const { geo } = ctx;
@@ -36,23 +37,8 @@ export function buildMountainApproach(ctx: FacilitySceneContext): void {
     d: 0.4,
   });
 
-  // Utility vehicle silhouette (parked off-road, north side)
-  // Main body
-  geo.course.box('fac-vehicle-body', {
-    width: 5,
-    height: 2,
-    depth: 2.2,
-    position: new Vector3(-50, 1, 9),
-    color: ctx.materials.palette.exterior.diffuseColor,
-  });
-  // Cab section
-  geo.course.box('fac-vehicle-cab', {
-    width: 2,
-    height: 1.6,
-    depth: 2.2,
-    position: new Vector3(-47, 1.8, 9),
-    color: ctx.materials.palette.metal.diffuseColor,
-  });
+  // Abandoned utility truck prop at approach boundary (with inspectable cab clue)
+  buildUtilityTruck(ctx, new Vector3(-53, 0, 7.5));
 
   // Concrete road barriers along the north edge near gate
   for (let i = 0; i < 4; i++) {

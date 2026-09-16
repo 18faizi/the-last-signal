@@ -239,6 +239,17 @@ export const INVESTIGATION_CLUES: readonly InvestigationClue[] = [
     unlocksDoorCode: '8472',
     narrativeFactId: 'FinalTerminalAccessed',
   },
+  {
+    id: 'clue-truck-evacuation-log',
+    title: 'Abandoned Vehicle 04 Dispatch',
+    description:
+      'Logistics slip left in the utility truck cab records a landslide blocking the northern mountain pass and severe radio distortion from the antenna array.',
+    sourceDocumentId: 'doc-truck-dispatch-slip',
+    zoneId: 'fz-perimeter-gate',
+    clueType: 'document',
+    linkedClueIds: ['clue-perimeter-movement'],
+    revealedFlag: 'clue.truck_evacuation_discovered',
+  },
 ];
 
 export const CLUE_CHAINS: readonly ClueChainDefinition[] = [
