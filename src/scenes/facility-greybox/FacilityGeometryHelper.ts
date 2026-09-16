@@ -13,7 +13,8 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import type { Scene } from '@babylonjs/core/scene';
 import { CourseBuilder } from '../movement-test/CourseBuilder';
 import type { FacilityPalette } from './FacilityMaterials';
@@ -317,9 +318,50 @@ export class FacilityGeometryHelper {
     });
   }
 
-  /** Dev floating label. */
-  label(text: string, position: Vector3, width?: number): Mesh {
-    return this.course.label(text, position, width);
+  /** Grounded architectural sign plaque with stenciled text. */
+  label(text: string, position: Vector3, width = 2.4): Mesh {
+    const mesh = CreateBox(
+      `fac-sign-${text}`,
+      { width, height: width / 3.8, depth: 0.04 },
+      this.scene,
+    );
+    mesh.position.copyFrom(position);
+    mesh.isPickable = false;
+
+    const dt = new DynamicTexture(
+      `sign-tex-${text}`,
+      { width: 512, height: 140 },
+      this.scene,
+      false,
+    );
+    const ctx = dt.getContext() as CanvasRenderingContext2D;
+
+    // Dark brushed metal plaque with cyan accent bar
+    ctx.fillStyle = '#11151c';
+    ctx.fillRect(0, 0, 512, 140);
+
+    ctx.fillStyle = '#223a54';
+    ctx.fillRect(0, 0, 512, 8);
+    ctx.fillRect(0, 132, 512, 8);
+
+    ctx.strokeStyle = '#334860';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(4, 4, 504, 132);
+
+    // Stenciled signage typography
+    ctx.fillStyle = '#e2edf8';
+    ctx.font = 'bold 34px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 256, 82);
+    dt.update();
+
+    const mat = new StandardMaterial(`sign-mat-${text}`, this.scene);
+    mat.diffuseTexture = dt;
+    mat.emissiveColor = new Color3(0.25, 0.3, 0.38);
+    mesh.material = mat;
+
+    this.decorMeshes.push(mesh);
+    return mesh;
   }
 
   dispose(): void {

@@ -18,6 +18,7 @@ import { FILTER_GROUP_PLAYER, FILTER_GROUP_WORLD } from '../physics/PhysicsFilte
 import type { SlidingDoorConfig } from './DoorDefinition';
 import type { DoorMotion } from './DoorMotion';
 import { DOOR_COLOR } from './HingedDoorMotion';
+import { DoorMeshBuilder } from '../../scenes/facility-greybox/props/DoorMeshBuilder';
 
 export class SlidingDoorMotion implements DoorMotion {
   readonly meshes: readonly AbstractMesh[];
@@ -50,6 +51,9 @@ export class SlidingDoorMotion implements DoorMotion {
     mat.specularColor = Color3.Black();
     leaf.material = mat;
     this.leaf = leaf;
+
+    // Architectural sliding blast door detailing (cross-braces, hazard sill, track)
+    DoorMeshBuilder.decorateSlidingDoor(id, leaf, config.width, config.height, thickness, scene);
     this.closedPosition = worldPosition.clone();
 
     if (slideAxis === 'x') {

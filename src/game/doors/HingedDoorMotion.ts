@@ -22,6 +22,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import { FILTER_GROUP_PLAYER, FILTER_GROUP_WORLD } from '../physics/PhysicsFilters';
 import type { HingedDoorConfig } from './DoorDefinition';
 import type { DoorMotion } from './DoorMotion';
+import { DoorMeshBuilder } from '../../scenes/facility-greybox/props/DoorMeshBuilder';
 
 export const DOOR_COLOR = new Color3(0.36, 0.34, 0.3);
 export const DOOR_COLOR_LOCKED = new Color3(0.5, 0.25, 0.22);
@@ -73,6 +74,9 @@ export class HingedDoorMotion implements DoorMotion {
     mat.specularColor = Color3.Black();
     leaf.material = mat;
     this.leaf = leaf;
+
+    // Architectural 3D door detailing (panels, handles, hinges, status LED)
+    DoorMeshBuilder.decorateHingedDoor(id, leaf, config.width, config.height, thickness, scene);
 
     // ANIMATED (kinematic) aggregate on the leaf so physics knows where it is.
     const agg = new PhysicsAggregate(leaf, PhysicsShapeType.BOX, { mass: 0 }, scene);

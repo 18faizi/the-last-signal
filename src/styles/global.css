@@ -207,19 +207,29 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.6rem;
-  background: rgb(10 12 18 / 82%);
-  border: 1px solid #333a4e;
+  gap: 0.6rem;
+  padding: 1.2rem 2.2rem;
+  background: rgba(8, 12, 18, 0.9);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(80, 140, 210, 0.35);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75);
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: 1.05rem;
   cursor: pointer;
   user-select: none;
   text-align: center;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+#pointer-lock-prompt:hover {
+  border-color: rgba(100, 180, 255, 0.6);
+  box-shadow: 0 16px 54px rgba(25, 75, 130, 0.35);
 }
 
 #pointer-lock-prompt:focus-visible {
-  outline: 2px solid #8a90a0;
+  outline: 2px solid #64b5f6;
   outline-offset: 2px;
 }
 
@@ -228,8 +238,9 @@ body {
 }
 
 .pointer-lock-hint {
-  color: #8a90a0;
-  font-size: 0.75rem;
+  color: #8fa0b5;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
 }
 
 /* ---------- Ready marker ---------- */
@@ -268,13 +279,15 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.9rem;
-  background: rgb(10 12 18 / 78%);
-  border: 1px solid #2a3040;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  letter-spacing: 0.06em;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  background: rgba(8, 12, 18, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(80, 130, 190, 0.35);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  border-radius: 5px;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
   pointer-events: none;
   user-select: none;
 }
@@ -284,26 +297,34 @@ body {
 }
 
 .interaction-prompt-key {
-  color: #cfe0f0;
-  font-weight: 600;
-  margin-right: 0.5em;
+  display: inline-block;
+  background: rgba(30, 50, 80, 0.8);
+  border: 1px solid rgba(100, 180, 255, 0.6);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  padding: 2px 7px;
+  color: #64b5f6;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  margin-right: 0.6em;
 }
 
 .interaction-prompt-text {
-  color: #e6e8ee;
+  color: #e2ecf5;
+  font-weight: 600;
 }
 
 .interaction-prompt-disabled .interaction-prompt-text {
-  color: #b08a7a;
+  color: #c98072;
   font-style: italic;
 }
 
 .interaction-hold-track {
-  width: 180px;
-  height: 4px;
-  background: #1d2230;
-  border: 1px solid #2a3040;
-  border-radius: 2px;
+  width: 190px;
+  height: 5px;
+  background: rgba(20, 30, 45, 0.8);
+  border: 1px solid rgba(80, 130, 190, 0.4);
+  border-radius: 3px;
   overflow: hidden;
 }
 
@@ -314,7 +335,8 @@ body {
 .interaction-hold-fill {
   width: 0%;
   height: 100%;
-  background: #cfe0f0;
+  background: linear-gradient(90deg, #1e88e5, #64b5f6);
+  box-shadow: 0 0 8px #64b5f6;
 }
 
 /* ---------- Inspection overlay ---------- */

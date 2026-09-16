@@ -20,7 +20,10 @@ export class InteractionPromptView implements Disposable {
   private lastDisabled = false;
   private lastProgressPercent = -1;
 
-  constructor(parent: HTMLElement) {
+  constructor(
+    parent: HTMLElement,
+    private readonly onHoverChanged?: (hovered: boolean) => void,
+  ) {
     this.root = document.createElement('div');
     this.root.id = 'interaction-prompt';
     this.root.setAttribute('role', 'status');
@@ -63,11 +66,13 @@ export class InteractionPromptView implements Disposable {
       this.root.classList.toggle('interaction-prompt-disabled', display.disabled);
     }
     this.root.hidden = false;
+    this.onHoverChanged?.(true);
   }
 
   hide(): void {
     this.root.hidden = true;
     this.setHoldProgress(null);
+    this.onHoverChanged?.(false);
   }
 
   /** null hides the bar; 0..1 shows it filled to that fraction. */

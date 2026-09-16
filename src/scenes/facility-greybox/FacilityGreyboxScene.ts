@@ -9,9 +9,7 @@
  * Zone triggers use AABB polling on onBeforeRenderObservable (not Havok).
  * No per-frame Zustand writes — all progression state lives in FacilityRuntimeState.
  */
-import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
-import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Scene } from '@babylonjs/core/scene';
 import type {
@@ -58,6 +56,10 @@ import { FacilityGeometryHelper } from './FacilityGeometryHelper';
 import type { FacilitySceneContext } from './FacilitySceneContext';
 import { TeleportMenuOverlay } from './overlay/TeleportMenuOverlay';
 import { FacilityDebugOverlay } from './overlay/FacilityDebugOverlay';
+import { ArcticSkybox } from './atmosphere/ArcticSkybox';
+import { CourtyardWeather } from './atmosphere/CourtyardWeather';
+import { FacilityLighting } from './atmosphere/FacilityLighting';
+import { CrosshairReticleView } from '../../ui/reticle/CrosshairReticleView';
 import { PowerDebugOverlay } from './overlay/PowerDebugOverlay';
 import { FACILITY_ITEM_DEFS } from './facilityItemDefinitions';
 import { FACILITY_DOCUMENTS } from './facilityDocumentDefinitions';
@@ -195,15 +197,12 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
 
     // ----- Scene setup -------------------------------------------------------
     const scene = new Scene(context.engine);
-    scene.clearColor = new Color4(0.06, 0.07, 0.1, 1);
+    scene.clearColor = new Color4(0.04, 0.06, 0.09, 1);
 
-    // Lighting: overcast daylight mood
-    const hemi = new HemisphericLight('hemi', new Vector3(0.1, 1, 0.2), scene);
-    hemi.intensity = 0.7;
-    hemi.groundColor = new Color3(0.08, 0.09, 0.12);
-    const sun = new DirectionalLight('sun', new Vector3(-0.4, -1, 0.3), scene);
-    sun.intensity = 0.55;
-    sun.diffuse = new Color3(0.9, 0.88, 0.82);
+    // Visual Overhaul: Arctic Skybox, Snow Weather & Cinematic Facility Lighting
+    const skybox = new ArcticSkybox(scene);
+    const weather = new CourtyardWeather(scene);
+    const lighting = new FacilityLighting(scene);
 
     const physicsPlugin = await context.physics.enableForScene(scene);
 
@@ -526,7 +525,10 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
     );
 
     // ----- UI views ---------------------------------------------------------
-    const promptView = new InteractionPromptView(context.overlayParent);
+    const reticleView = new CrosshairReticleView(context.overlayParent);
+    const promptView = new InteractionPromptView(context.overlayParent, (hovered) => {
+      reticleView.setInteractableHover(hovered);
+    });
     const inspectionOverlay = new InspectionOverlay(context.overlayParent);
     const readerView = new DocumentReaderView(context.overlayParent);
     const notificationView = new InventoryNotificationView(context.overlayParent);
@@ -1714,6 +1716,7 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
         inventoryViewer.dispose();
         notificationView.dispose();
         inspectionOverlay.dispose();
+        reticleView.dispose();
         promptView.dispose();
         controller.dispose();
 
@@ -1741,6 +1744,9 @@ export const facilityGreyboxSceneDefinition: SceneDefinition = {
 
         geo.dispose();
         materials.dispose();
+        weather.dispose();
+        skybox.dispose();
+        lighting.dispose();
 
         scene.dispose();
         physicsPlugin.dispose();

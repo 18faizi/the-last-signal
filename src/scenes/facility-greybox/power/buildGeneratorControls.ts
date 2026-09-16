@@ -18,10 +18,9 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { FacilitySceneContext } from '../FacilitySceneContext';
-import {
-  createGeneratorInteractionTargets,
-  type GeneratorControlMeshes,
-} from '../../../game/generator/GeneratorInteractionTargets';
+import type { GeneratorControlMeshes } from '../../../game/generator/GeneratorInteractionTargets';
+import { createGeneratorInteractionTargets } from '../../../game/generator/GeneratorInteractionTargets';
+import { GeneratorMeshBuilder } from '../props/GeneratorMeshBuilder';
 
 function box(scene: Scene, id: string, position: Vector3, size: Vector3, color: Color3) {
   const mesh = CreateBox(id, { width: size.x, height: size.y, depth: size.z }, scene);
@@ -41,6 +40,9 @@ export function buildGeneratorControls(ctx: FacilitySceneContext, scene: Scene):
   // standing position — this is what lets the e2e suite drive the starter
   // hold through the real interaction framework instead of a bridge shortcut.
   const y = 1.6;
+
+  // Architectural 3D industrial generator powerplant
+  GeneratorMeshBuilder.buildIndustrialGenerator(new Vector3(47, 0, 3.2), scene);
 
   const meshes: GeneratorControlMeshes = {
     statusPanel: box(

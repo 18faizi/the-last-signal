@@ -16,6 +16,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { FacilitySceneContext } from '../FacilitySceneContext';
 import { AVAILABLE } from '../../../game/interaction/InteractionTarget';
+import { ElectricalPropBuilder } from '../props/ElectricalPropBuilder';
 
 export const DISTRIBUTION_PANEL_TARGET_ID = 'fg-distribution-panel';
 
@@ -29,10 +30,13 @@ export function buildDistributionPanel(ctx: FacilitySceneContext, scene: Scene):
   // y aligned to standing eye height (1.66m) so a level look hits it directly.
   panelMesh.position.set(-9.7, 1.6, 18);
   const panelMat = new StandardMaterial('fg-distribution-panel-mat', scene);
-  panelMat.diffuseColor = new Color3(0.2, 0.3, 0.45);
-  panelMat.specularColor = new Color3(0.05, 0.05, 0.05);
+  panelMat.diffuseColor = new Color3(0.2, 0.23, 0.27);
+  panelMat.specularColor = new Color3(0.2, 0.2, 0.2);
   panelMesh.material = panelMat;
   panelMesh.isPickable = true;
+
+  // Architectural 3D electrical enclosure with knife switch lever & breakers
+  ElectricalPropBuilder.decorateDistributionPanel(panelMesh, scene);
 
   const panelTarget = {
     id: DISTRIBUTION_PANEL_TARGET_ID,

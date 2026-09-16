@@ -2,7 +2,7 @@
 
 ## Architectural Overview
 
-Milestone 1.0 establishes the high-level progression, persistence, and narrative resolution layer of *The Last Signal*. It orchestrates domain systems (Power, Receiver, Antenna, Threat, Documents, Inventory) into a strictly validated state machine.
+Milestone 1.0 establishes the high-level progression, persistence, and narrative resolution layer of _The Last Signal_. It orchestrates domain systems (Power, Receiver, Antenna, Threat, Documents, Inventory) into a strictly validated state machine.
 
 ```
                   ┌──────────────────────┐
@@ -36,6 +36,7 @@ Milestone 1.0 establishes the high-level progression, persistence, and narrative
 ## 1. Game Flow State Machine
 
 `GameFlowState` manages high-level chapter transitions defined in `GameChapter.ts`:
+
 - **10 Sequential Story Chapters**:
   - `Arrival`
   - `PowerRestoration`
@@ -60,6 +61,7 @@ Milestone 1.0 establishes the high-level progression, persistence, and narrative
 `RuntimeCheckpointSnapshot` is a versioned, serializable Data Transfer Object containing zero Babylon.js meshes or DOM node references.
 
 ### Schema Fields
+
 - `version`: Fixed integer `1`.
 - `checkpointId`: Active checkpoint identifier (one of 13 station checkpoints).
 - `timestamp`: Epoch millisecond timestamp of capture.
@@ -76,7 +78,9 @@ Milestone 1.0 establishes the high-level progression, persistence, and narrative
 - `documents`: Set of read document IDs.
 
 ### Soft-Lock Validator (`ProgressionRecoveryValidator`)
+
 When restoring a snapshot, `ProgressionRecoveryValidator` validates invariants to ensure the player cannot load into a corrupted or impossible game state:
+
 1. **Chapter Consistency**: Ensures prerequisites are met for the active chapter (e.g., Chapter `SignalDecoding` requires generator power output > 0).
 2. **Key Invariants**: If the player is in an interior zone beyond a locked keycard door, the requisite keycard must either be in inventory or the door must be permanently unlocked.
 3. **Breaker Sanity**: Ensures essential breakers are enabled if the active chapter demands power routing.
@@ -87,24 +91,31 @@ When restoring a snapshot, `ProgressionRecoveryValidator` validates invariants t
 ## 3. Final Decision Controller & Ending Framework
 
 ### Prerequisite Resolution
+
 `FinalDecisionController` gates access to the three ending pathways:
+
 - **`SILENCE`**: Always unlocked.
 - **`RESPONSE`**: Requires facts `FirstTransmissionDecoded` AND `AntennaAligned`.
 - **`ARCHIVE`**: Requires facts `LocalLoopResultRevealed` AND `ArchiveEvidenceDiscovered`.
 
 ### Two-Step Confirmation
+
 To prevent accidental choices:
+
 1. First selection highlights the pathway and displays the protocol summary and narrative consequence.
-2. Clicking the active selection or pressing the dedicated confirmation button reveals the confirmation prompt: *"CONFIRMATION REQUIRED: Execute [Protocol Code]?"*.
+2. Clicking the active selection or pressing the dedicated confirmation button reveals the confirmation prompt: _"CONFIRMATION REQUIRED: Execute [Protocol Code]?"_.
 3. Confirming transfers control to `EndingSequenceController`; canceling reverts the terminal to pathway selection.
 
 ### In-Engine Ending Cinematic (`EndingCinematicView`)
+
 - **Letterbox Bars**: Cinematic widescreen masking over the 3D viewport.
 - **Typewriter Readout**: Atmospheric text telemetry describing systemic shutdowns, broadcast pulses, or tape spooling.
 - **Skip Support**: Players or automated tests can press `Escape` / `Space` / call `skipEndingSequence` to advance directly to the debriefing.
 
 ### Restart Coordination (`RestartController`)
+
 `RestartController` coordinates total game state reset without full page reloading:
+
 - Resets player position to spawn coordinates `(0, 1, -12)`.
 - Resets `GameFlowState` to `Arrival`.
 - Clears inventory items and resets door locks.

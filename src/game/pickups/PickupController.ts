@@ -5,16 +5,14 @@
  * Returns the created target so callers can also register it directly if they
  * want to hold a reference (e.g. test bridge).
  */
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 import type { InventoryService } from '../inventory/InventoryService';
 import type { InteractionRegistry } from '../interaction/InteractionRegistry';
 import type { PickupDefinition } from './PickupDefinition';
 import { PickupInteractionTarget } from './PickupInteractionTarget';
 import { InspectablePickupTarget } from './InspectablePickupTarget';
+import { KeyMeshBuilder } from '../../scenes/facility-greybox/props/KeyMeshBuilder';
 
 export type AnyPickupTarget = PickupInteractionTarget | InspectablePickupTarget;
 
@@ -29,18 +27,14 @@ export function createPickup(
   inventory: InventoryService,
   registry: InteractionRegistry,
 ): AnyPickupTarget {
-  // Simple key/card shape in scene.
-  const mesh = CreateBox(
-    `pickup-mesh-${def.id}`,
-    { width: 0.12, height: 0.06, depth: 0.28 },
-    scene,
-  );
+  // Realistic 3D key/card/seal model
+  const mesh = KeyMeshBuilder.buildPickupMesh(def, scene);
+  mesh.name = `pickup-mesh-${def.id}`;
   mesh.position.copyFrom(worldPosition);
-
-  const mat = new StandardMaterial(`pickup-mat-${def.id}`, scene);
-  mat.diffuseColor = new Color3(0.75, 0.65, 0.3);
-  mat.specularColor = new Color3(0.5, 0.5, 0.3);
-  mesh.material = mat;
+  mesh.isPickable = true;
+  for (const child of mesh.getChildMeshes()) {
+    child.isPickable = true;
+  }
 
   const mode = def.mode ?? 'direct';
   let target: AnyPickupTarget;

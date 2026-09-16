@@ -267,6 +267,13 @@ export class DoorController {
         setColor(DOOR_COLOR);
       }
     }
+
+    for (const mesh of this.motion.meshes) {
+      const updateFn = (mesh as unknown as Record<string, unknown>)?.['updateLockLed'];
+      if (typeof updateFn === 'function') {
+        (updateFn as (locked: boolean) => void)(this.state.access === 'locked');
+      }
+    }
   }
 
   private emit(event: DoorEvent): void {
